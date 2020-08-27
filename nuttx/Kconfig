@@ -1,0 +1,94 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+menuconfig SYSTEM_ADB_SERVER
+	bool "adb server command"
+	default n
+	---help---
+		Enable support for adb server.
+
+if SYSTEM_ADB_SERVER
+
+config SYSTEM_ADB_STACKSIZE
+	int "adb stack size"
+	default 1536
+	---help---
+		The size of stack allocated for the tee task.
+
+config SYSTEM_ADB_PRIORITY
+	int "tee priority"
+	default 100
+	---help---
+		The priority of the adb task.
+
+config SYSTEM_ADB_MAX_FD
+	int "number of biggest file descriptor value handled"
+	default 64
+	---help---
+		adb allocates an array to manage all file descriptors tracked
+
+config SYSTEM_ADB_AUTHENTICATION
+	bool "adbd authentication support"
+	default n
+	---help---
+		Enable authentication for adb server.
+
+config SYSTEM_ADB_AUTH_PUBKEY
+	bool "adbd public key authentication"
+	default n
+	---help---
+		Enable hook to accept new public keys.
+
+config SYSTEM_ADB_PRODUCT_NAME
+	string "default adb product name"
+	default "adb dev"
+
+config SYSTEM_ADB_PRODUCT_MODEL
+	string "default adb product model"
+	default "adb board"
+
+config SYSTEM_ADB_PRODUCT_DEVICE
+	string "default adb product device"
+	default "NuttX device"
+
+config SYSTEM_ADB_TCP_SERVER
+    bool "Network socket transport support"
+    default n
+    ---help---
+        Run adb server on network socket
+
+config SYSTEM_ADB_TCP_SERVER_PORT
+    int "Network socket transport port"
+    depends on SYSTEM_ADB_TCP_SERVER
+    default 5555
+    ---help---
+        Port used by adb socket server
+
+config SYSTEM_ADB_USB_SERVER
+    bool "USB transport support"
+    default n
+    ---help---
+        Run adb server on USB bus
+
+config SYSTEM_ADB_SHELL_SERVICE
+    bool "adb shell support"
+    default n
+    ---help---
+        Enable "adb shell" feature.
+
+
+config SYSTEM_ADB_SOCKET_SERVICE
+    bool "adb socket support"
+    default n
+    ---help---
+        Enable "adb forward/reverse" feature.
+
+config SYSTEM_ADB_FILE_SERVICE
+    bool "adb file sync support"
+    default n
+    ---help---
+        Enable "adb ls/push/pull" feature.
+
+endif # SYSTEM_ADB_SERVER
