@@ -31,48 +31,41 @@ int adb_fill_connect_data(char *buf, size_t bufsize)
         return -1;
     }
 
+#ifdef CONFIG_SYSTEM_ADB_PRODUCT_NAME
     remaining -= len;
     buf += len;
-
-#ifdef CONFIG_SYSTEM_ADB_PRODUCT_NAME
     len = snprintf(buf, remaining,
                    "ro.product.name=" CONFIG_SYSTEM_ADB_PRODUCT_NAME ";");
 
     if (len >= remaining) {
         return bufsize;
     }
-
-    remaining -= len;
-    buf += len;
 #endif
 
 #ifdef CONFIG_SYSTEM_ADB_PRODUCT_MODEL
+    remaining -= len;
+    buf += len;
     len = snprintf(buf, remaining,
                    "ro.product.model=" CONFIG_SYSTEM_ADB_PRODUCT_MODEL ";");
 
     if (len >= remaining) {
         return bufsize;
     }
-
-    remaining -= len;
-    buf += len;
 #endif
 
 #ifdef CONFIG_SYSTEM_ADB_PRODUCT_DEVICE
+    remaining -= len;
+    buf += len;
     len = snprintf(buf, remaining,
                    "ro.product.device=" CONFIG_SYSTEM_ADB_PRODUCT_DEVICE ";");
 
     if (len >= remaining) {
         return bufsize;
     }
-
-    /* TODO add features list (cmd,shell_v2...) */
-
-    remaining -= len;
-    buf += len;
 #endif
 
 #ifdef CONFIG_SYSTEM_ADB_FEATURES
+    /* TODO add features list (cmd,shell_v2...) */
     len = snprintf(buf, remaining, CONFIG_SYSTEM_ADB_FEATURES);
                    // "features=cmd,shell_v2");
 
