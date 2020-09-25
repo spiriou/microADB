@@ -28,7 +28,6 @@
 
 typedef struct atcp_rstream_service_s {
     adb_rstream_service_t rsvc;
-    uint8_t is_connected;
 } atcp_rstream_service_t;
 
 typedef struct atcp_fstream_service_s {
@@ -47,11 +46,11 @@ static int atcp_server_on_ack(adb_service_t *service, apacket *p);
 static int atcp_server_on_write(adb_service_t *service, apacket *p);
 static void atcp_server_close(struct adb_service_s *service);
 
-static int atcp_rstream_on_ack(adb_service_t *service, apacket *p);
-static int atcp_fstream_on_ack(adb_service_t *service, apacket *p);
+static int atcp_stream_on_ack(adb_service_t *service, apacket *p);
 static int atcp_stream_on_write(adb_service_t *service, apacket *p);
-static void atcp_rstream_close(struct adb_service_s *service);
-static void atcp_fstream_close(struct adb_service_s *service);
+static void atcp_stream_on_kick(adb_service_t *service);
+
+static void atcp_stream_close(struct adb_service_s *service);
 
 static const adb_service_ops_t atcp_server_ops = {
     .on_write_frame = atcp_server_on_write,
@@ -60,18 +59,11 @@ static const adb_service_ops_t atcp_server_ops = {
     .close          = atcp_server_close
 };
 
-static const adb_service_ops_t atcp_rstream_ops = {
+static const adb_service_ops_t atcp_stream_ops = {
     .on_write_frame = atcp_stream_on_write,
-    .on_ack_frame   = atcp_rstream_on_ack,
-    .on_kick        = NULL, // atcp_stream_on_kick,
-    .close          = atcp_rstream_close
-};
-
-static const adb_service_ops_t atcp_fstream_ops = {
-    .on_write_frame = atcp_stream_on_write,
-    .on_ack_frame   = atcp_fstream_on_ack,
-    .on_kick        = NULL, // atcp_stream_on_kick,
-    .close          = atcp_fstream_close
+    .on_ack_frame   = atcp_stream_on_ack,
+    .on_kick        = atcp_stream_on_kick,
+    .close          = atcp_stream_close
 };
 
 static int atcp_server_on_write(adb_service_t *service, apacket *p) {
@@ -117,6 +109,7 @@ static void tcp_stream_on_data_cb(adb_tcp_socket_t *socket, apacket *p) {
     }
 
     adb_hal_socket_stop(socket);
+    service->stream.flags |= ADB_STREAM_WAIT_ACK;
 
     p->write_len = p->msg.data_length;
     p->msg.arg0 = service->service.id;
@@ -124,24 +117,30 @@ static void tcp_stream_on_data_cb(adb_tcp_socket_t *socket, apacket *p) {
     adb_client_send_service_payload(service->client, p);
 }
 
-static int atcp_rstream_on_ack(adb_service_t *service, apacket *p) {
+static int atcp_stream_on_ack(adb_service_t *service, apacket *p) {
     UNUSED(p);
     atcp_rstream_service_t *svc =
         container_of(service, atcp_rstream_service_t, rsvc.service);
 
-    adb_log("entry %d\n", svc->is_connected);
+    adb_log("entry 0x%x\n", svc->rsvc.stream.flags);
 
-    // if (!svc->is_connected) {
-        svc->is_connected = 1;
-        adb_hal_socket_start(&svc->rsvc.stream.socket, tcp_stream_on_data_cb);
-    // }
+
+    svc->rsvc.stream.flags |= ADB_STREAM_CONNECTED;
+    svc->rsvc.stream.flags &= ~ADB_STREAM_WAIT_ACK;
+    adb_hal_socket_start(&svc->rsvc.stream.socket, tcp_stream_on_data_cb);
+
     return 0;
 }
 
-static int atcp_fstream_on_ack(adb_service_t *service, apacket *p) {
-    UNUSED(service);
-    UNUSED(p);
-    return 0;
+static void atcp_stream_on_kick(adb_service_t *service) {
+    atcp_rstream_service_t *svc =
+        container_of(service, atcp_rstream_service_t, rsvc.service);
+
+    adb_log("entry 0x%x\n", svc->rsvc.stream.flags);
+
+    if (!(svc->rsvc.stream.flags & ADB_STREAM_WAIT_ACK)) {
+        adb_hal_socket_start(&svc->rsvc.stream.socket, tcp_stream_on_data_cb);
+    }
 }
 
 static void stream_send_data_frame_cb(adb_client_t *client, adb_tcp_socket_t *socket, apacket *p) {
@@ -163,7 +162,7 @@ static int atcp_stream_on_write(adb_service_t *service, apacket *p) {
     adb_fstream_service_t *svc =
         container_of(service, adb_fstream_service_t, service);
 
-    p->write_len = p->msg.data_length;
+    // p->write_len = p->msg.data_length;
     ret = adb_hal_socket_write(&svc->stream.socket, p, stream_send_data_frame_cb);
 
     if (ret < 0) {
@@ -181,16 +180,22 @@ static void atcp_stream_release(adb_tcp_socket_t *socket) {
     free(service);
 }
 
-static void atcp_fstream_close(struct adb_service_s *service) {
+static void atcp_stream_close(struct adb_service_s *service) {
     atcp_fstream_service_t *svc =
         container_of(service, atcp_fstream_service_t, fsvc.service);
     adb_hal_socket_close(&svc->fsvc.stream.socket, atcp_stream_release);
 }
 
-static void atcp_rstream_close(struct adb_service_s *service) {
-    atcp_rstream_service_t *svc =
-        container_of(service, atcp_rstream_service_t, rsvc.service);
-    adb_hal_socket_close(&svc->rsvc.stream.socket, atcp_stream_release);
+static void tcp_stream_on_connect_cb(adb_tcp_fstream_t *stream, int status) {
+    adb_log("entry %p %d\n", socket, status);
+
+    // TODO check status
+    if (status) {
+        return;
+    }
+
+    stream->flags |= ADB_STREAM_CONNECTED;
+    adb_hal_socket_start(&stream->socket, tcp_stream_on_data_cb);
 }
 
 adb_service_t* tcp_forward_service(adb_client_t *client, const char *params)
@@ -210,16 +215,22 @@ adb_service_t* tcp_forward_service(adb_client_t *client, const char *params)
     }
 
     service->fsvc.client = client;
+    service->fsvc.stream.flags = 0;
 
-    adb_log("OPEN PORT %d\n", port);
+    adb_log("connect to port %d\n", port);
     int ret = adb_hal_socket_connect(client,
         &service->fsvc.stream,
         port,
-        tcp_stream_on_data_cb);
-    adb_log("RET %d\n", ret);
+        tcp_stream_on_connect_cb);
 
-    service->fsvc.service.ops = &atcp_fstream_ops;
+    if (ret) {
+        free(service);
+        return NULL;
+    }
 
+    service->fsvc.service.ops = &atcp_stream_ops;
+
+    // TODO do not send OKAY now but wait for connect callback
     return &service->fsvc.service;
 }
 
@@ -283,9 +294,9 @@ adb_rstream_service_t* tcp_allocate_rstream_service(adb_client_t *client)
         return NULL;
     }
 
-    service->rsvc.service.ops = &atcp_rstream_ops;
+    service->rsvc.service.ops = &atcp_stream_ops;
     service->rsvc.client = client;
-    service->is_connected = 0;
+    service->rsvc.stream.flags = 0;
 
     adb_register_service(&service->rsvc.service, client);
     return &service->rsvc;

@@ -231,7 +231,7 @@ int adb_check_frame_header(apacket *p);
 int adb_check_auth_frame_header(apacket *p);
 
 int adb_hal_socket_connect(adb_client_t *client, adb_tcp_fstream_t *stream,
-    int port, void (*on_data_cb)(adb_tcp_socket_t*, apacket*));
+    int port, void (*on_connect_cb)(adb_tcp_fstream_t*, int));
 int adb_hal_socket_listen(adb_client_t *client, adb_tcp_server_t *socket, int port);
 void adb_hal_socket_close(adb_tcp_socket_t *socket, void (*close_cb)(adb_tcp_socket_t*));
 

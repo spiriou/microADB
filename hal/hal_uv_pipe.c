@@ -124,6 +124,7 @@ int adb_hal_pipe_write(adb_pipe_t *pipe, const void *buf, size_t count) {
 }
 
 int adb_hal_pipe_start(adb_pipe_t *pipe, void (*on_data_cb)(adb_pipe_t*, apacket*)) {
+  pipe->on_data_cb = on_data_cb;
   return uv_poll_start(&pipe->handle, UV_READABLE, exec_on_data_available);
 }
 
@@ -145,6 +146,7 @@ static void exec_on_data_available(uv_poll_t* handle, int status, int events) {
     ap = adb_uv_packet_allocate((adb_client_tcp_t*)client, 0);
     if (ap == NULL) {
         adb_log("frame allocation failed\n");
+        uv_poll_stop(&pipe->handle);
         // pipe->on_data_cb(pipe, NULL);
         return;
     }
@@ -385,40 +387,6 @@ int adb_hal_exec(char * const argv[], adb_pipe_t *pipe, void (*on_data_cb)(adb_p
     adb_log("entry\n");
 
     int ret;
-    pipe->on_data_cb = on_data_cb;
-
-
-#if 0
-    char path[16];
-    sprintf(path, "/dev/ai%d", apipe->uid);
-    ret = open(path, O_WRONLY); // O_RDONLY
-    adb_log("OPEN1 %d %d\n", ret, errno);
-
-    if (ret != 0) {
-        ret = dup2(ret, 0);
-        adb_log("DUP2 IN %d %d\n", ret, errno);
-        close(pipe->std_fd[0]);
-        pipe->std_fd[0] = -1;
-    }
-#endif
-#if 0
-    if (pipe->std_fd[0] != 0) {
-        ret = dup2(pipe->std_fd[0], 0);
-        adb_log("DUP2 IN %d %d\n", ret, errno);
-        close(pipe->std_fd[0]);
-        pipe->std_fd[0] = -1;
-    }
-
-    if (pipe->std_fd[1] != 1) {
-        ret = dup2(pipe->std_fd[1], 1);
-        adb_log("DUP2 OUT %d %d\n", ret, errno);
-        close(pipe->std_fd[1]);
-        pipe->std_fd[1] = -1;
-    }
-#endif
-
-
-
     char path[16];
     int read_fd;
     int tmp_fd;
@@ -442,34 +410,18 @@ int adb_hal_exec(char * const argv[], adb_pipe_t *pipe, void (*on_data_cb)(adb_p
     ret = fcntl(tmp_fd, F_GETFD);
     fcntl(tmp_fd, F_SETFD, ret | FD_CLOEXEC);
 
-
-
-
-
     ret = exec_builtin2(argv[0], argv, pipe);
     adb_log("exec_builtin %d %d\n", ret, errno);
 
     close(tmp_fd);
-    // close(0);
-    // close(1);
 
     if (ret < 0) {
         return -1;
     }
 
-#if 0
-    char path[16];
-    sprintf(path, "/dev/ai%d", pipe->uid);
-    adb_log("try open <%s>\n", path);
-    ret = open(path, O_RDONLY);
-    adb_log("PIPE1 OPEN %d %d\n", ret, errno);
-    pipe->write_fd = ret;
-#endif
+    ret = adb_hal_pipe_start(pipe, on_data_cb);
 
-
-
-    ret = uv_poll_start(&pipe->handle, UV_READABLE, exec_on_data_available);
-
+    /* Unlink pipes */
     unlink(path);
     path[6] = 'i';
     unlink(path);

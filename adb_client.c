@@ -73,8 +73,8 @@ static void send_frame(adb_client_t *client, apacket *p)
     }
     p->msg.data_check = sum;
 
-    // adb_log("WRITE FRAME %p\n", p);
-    // DumpHex(&p->msg, sizeof(p->msg)+p->msg.data_length);
+    adb_log("WRITE FRAME %p\n", p);
+    DumpHex(&p->msg, sizeof(p->msg)+p->msg.data_length);
 
     int ret = client->ops->write(client, p);
 
@@ -332,7 +332,6 @@ void adb_register_service(adb_service_t *svc, adb_client_t *client) {
 
 static adb_service_t *adb_service_open(adb_client_t *client, const char *name, apacket *p)
 {
-    int ret = -ENODEV;
     adb_service_t *svc = NULL;
 
     UNUSED(p);
@@ -367,14 +366,14 @@ static adb_service_t *adb_service_open(adb_client_t *client, const char *name, a
 
     else if (!strncmp(name, "reverse:", 8)) {
 		if (!strncmp(name, "list-forward", 12)) {
-			ret = snprintf((char*)p->data, CONFIG_ADB_PAYLOAD_SIZE-1,
+			int len = snprintf((char*)p->data, CONFIG_ADB_PAYLOAD_SIZE-1,
 				"%s %s %s\n",
 				"(reverse)", "tcp:1234", "tcp:9812");
-			if (ret > CONFIG_ADB_PAYLOAD_SIZE-1) {
-				ret = CONFIG_ADB_PAYLOAD_SIZE-1;
+			if (len > CONFIG_ADB_PAYLOAD_SIZE-1) {
+				len = CONFIG_ADB_PAYLOAD_SIZE-1;
 			}
-			p->data[ret] = 0;
-			p->write_len = ret+1;
+			p->data[len] = 0;
+			p->write_len = len+1;
             p->msg.arg1 = client->next_service_id++;
 		}
 		else {
@@ -400,7 +399,7 @@ static adb_service_t *adb_service_open(adb_client_t *client, const char *name, a
     return svc;
 
 exit_error:
-    adb_log("fail to init service %s: %d\n", name, ret);
+    adb_log("fail to init service %s\n", name);
     return NULL;
 }
 
@@ -489,8 +488,8 @@ void adb_destroy_client(adb_client_t *client) {
 void adb_process_packet(adb_client_t *client, apacket *p)
 {
     p->write_len = 0;
-    // adb_log("READ FRAME %p\n", p);
-    // DumpHex(&p->msg, sizeof(p->msg)+p->msg.data_length);
+    adb_log("READ FRAME %p\n", p);
+    DumpHex(&p->msg, sizeof(p->msg)+p->msg.data_length);
 
     if (!client->is_connected) {
     	if (p->msg.command == A_CNXN) {

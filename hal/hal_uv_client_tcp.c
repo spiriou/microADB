@@ -143,6 +143,7 @@ static void tcp_after_write(uv_write_t* req, int status) {
     }
 
     if (up->p.write_len > 0) {
+        adb_log("restart\n");
         adb_client_send_service_payload(&client->client, &up->p);
         return;
     }
@@ -270,7 +271,8 @@ int tcp_setup_server(adb_context_uv_t *adbd) {
         return ret;
     }
 
-    ret = uv_listen((uv_stream_t*)&adbd->tcp_server, 5, tcp_on_connection);
+    ret = uv_listen((uv_stream_t*)&adbd->tcp_server,
+        SOMAXCONN, tcp_on_connection);
     if (ret) {
         /* TODO: Error codes */
         adb_log("tcp server listen error %d %d\n", ret, errno);
