@@ -64,15 +64,12 @@ int adb_fill_connect_data(char *buf, size_t bufsize)
     }
 #endif
 
-#ifdef CONFIG_SYSTEM_ADB_FEATURES
-    /* TODO add features list (cmd,shell_v2...) */
-    len = snprintf(buf, remaining, CONFIG_SYSTEM_ADB_FEATURES);
+    len = snprintf(buf, remaining, "features=" CONFIG_SYSTEM_ADB_FEATURES);
                    // "features=cmd,shell_v2");
 
     if (len >= remaining) {
         return bufsize;
     }
-#endif
 
     return bufsize - remaining + len;
 }

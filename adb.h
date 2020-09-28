@@ -38,14 +38,16 @@
 #endif
 
 #define CONFIG_ADB_CNXN_PAYLOAD_SIZE 1024 // 256
-#define CONFIG_ADB_PAYLOAD_SIZE 40 // 72 // 40 // 4096 // 256 // 4096
+#define CONFIG_ADB_PAYLOAD_SIZE 64 // 256 // 40 // 72 // 40 // 4096 // 256 // 4096
 #define CONFIG_ADB_TOKEN_SIZE 20
+
+#define CONFIG_SYSTEM_ADB_FEATURES "cmd,shell_v1"
 
 #ifndef __NUTTX__
 #define CONFIG_SYSTEM_ADB_PRODUCT_NAME   "adb_dev"
 #define CONFIG_SYSTEM_ADB_PRODUCT_MODEL  "adb_board"
 #define CONFIG_SYSTEM_ADB_PRODUCT_DEVICE "NuttX_device"
-#define CONFIG_SYSTEM_ADB_TCP_FRAME_MAX  2
+#define CONFIG_SYSTEM_ADB_TCP_FRAME_MAX  1
 
 #define UNUSED(x) (void)(x)
 
@@ -59,7 +61,11 @@
 
 #include "hal/hal_uv.h"
 
-#define adb_log(...) _info(__VA_ARGS__)
+#define adb_log(...) do { \
+    printf("%s: ", __func__); \
+    printf(__VA_ARGS__); \
+    } while (0)
+// _info(__VA_ARGS__)
 
 #define container_of(ptr, type, member) \
   ((type *)((uintptr_t)(ptr) - offsetof(type, member)))
@@ -111,6 +117,7 @@ struct adb_tcp_fstream_s;
 struct adb_tcp_rstream_s;
 struct adb_tcp_server_s;
 
+typedef struct adb_event_s adb_event_t;
 typedef struct adb_pipe_s adb_pipe_t;
 typedef struct adb_tcp_socket_s adb_tcp_socket_t;
 typedef struct adb_tcp_server_s adb_tcp_server_t;

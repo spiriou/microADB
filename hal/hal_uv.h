@@ -6,11 +6,15 @@
 struct apacket_s;
 struct adb_client_s;
 
+struct adb_event_s {
+    uv_poll_t handle;
+};
+
 struct adb_pipe_s {
     uv_poll_t handle;
     int write_fd;
-    int std_fd[2];
-    int uid;
+    // int std_fd[2];
+    int uid; // FIXME remove ???
     void (*close_cb)(struct adb_pipe_s*);
     void (*on_data_cb)(struct adb_pipe_s*, struct apacket_s*);
 };

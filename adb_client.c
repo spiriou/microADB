@@ -25,7 +25,12 @@
 #include "adb.h"
 #include "file_sync_service.h"
 #include "tcp_service.h"
+#ifdef CONFIG_SYSTEM_ADB_SHELL_SERVICE
 #include "shell_service.h"
+#endif
+#ifdef CONFIG_SYSTEM_ADB_LOGCAT_SERVICE
+#include "logcat_service.h"
+#endif
 
 #ifdef CONFIG_SYSTEM_ADB_AUTHENTICATION
 #include "mincrypt/rsa.h"
@@ -347,9 +352,22 @@ static adb_service_t *adb_service_open(adb_client_t *client, const char *name, a
     }
 #endif
 
-#ifdef CONFIG_SYSTEM_ADB_SHELL_SERVICE
+#if defined(CONFIG_SYSTEM_ADB_SHELL_SERVICE) || defined(CONFIG_SYSTEM_ADB_LOGCAT_SERVICE)
     else if (!strncmp(name, "shell", 5)) {
+#ifdef CONFIG_SYSTEM_ADB_LOGCAT_SERVICE
+        /* Search for logcat */
+        char *ptr = strstr(name, "exec logcat");
+        if (ptr) {
+            adb_log("FOUND LOGCAT <%s>\n", ptr+5);
+            svc = logcat_service(client, name);
+            goto service_created;
+        }
+
+#endif
+#ifdef CONFIG_SYSTEM_ADB_SHELL_SERVICE
         svc = shell_service(client, name);
+        goto service_created;
+#endif
     }
 #endif
 
@@ -391,6 +409,7 @@ static adb_service_t *adb_service_open(adb_client_t *client, const char *name, a
     }
 #endif
 
+service_created:
     if (svc == NULL) {
     	goto exit_error;
     }
