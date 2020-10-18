@@ -13,9 +13,9 @@ static void tcp_stream_allocate_frame(uv_handle_t* handle,
 
     apacket_uv_t *up;
     // adb_tcp_socket_t *socket = container_of(handle, adb_tcp_socket_t, handle);
-    adb_client_t *client = (adb_client_t*)handle->data;
+    adb_client_uv_t *client = (adb_client_uv_t*)handle->data;
 
-    up = adb_uv_packet_allocate((adb_client_tcp_t*)client, 0);
+    up = adb_uv_packet_allocate(client, 0);
     if (up == NULL) {
         adb_log("frame allocation failed\n");
         buf->len = 0;
@@ -211,7 +211,7 @@ static void tcp_server_on_connection(uv_stream_t* server, int status) {
     // adb_tcp_server_t *socket =
     //     (adb_tcp_server_t*)container_of(server, adb_tcp_server_t, handle);
     apacket_uv_t *ap;
-    adb_client_t *client = (adb_client_t*)server->data;
+    adb_client_uv_t *client = (adb_client_uv_t*)server->data;
     adb_rstream_service_t* rsvc;
 
     adb_log("entry %d\n", status);
@@ -221,7 +221,7 @@ static void tcp_server_on_connection(uv_stream_t* server, int status) {
     }
     assert(status == 0);
 
-    rsvc = tcp_allocate_rstream_service(client);
+    rsvc = tcp_allocate_rstream_service(&client->client);
     if (rsvc == NULL) {
         fatal("out of memory");
     }
@@ -232,12 +232,12 @@ static void tcp_server_on_connection(uv_stream_t* server, int status) {
     ret = uv_accept(server, (uv_stream_t*)&rsvc->stream.socket.handle);
     if (ret) {
         // FIXME
-        adb_service_close(client, &rsvc->service, NULL);
+        adb_service_close(&client->client, &rsvc->service, NULL);
         return;
     }
 
 #if 1
-    ap = adb_uv_packet_allocate((adb_client_tcp_t*)client, 0); // NULL, 0);
+    ap = adb_uv_packet_allocate(client, 0); // NULL, 0);
     if (ap == NULL) {
         adb_log("frame allocation failed\n");
         // TODO
@@ -251,7 +251,7 @@ static void tcp_server_on_connection(uv_stream_t* server, int status) {
 
     // FIXME
     ret = sprintf((char*)ap->p.data, "tcp:%d", 7100);
-    send_open_frame(client, &ap->p,
+    send_open_frame(&client->client, &ap->p,
         rsvc->service.id,
         0, // rsvc->service.peer_id,
         ret+1);

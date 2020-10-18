@@ -30,24 +30,23 @@
 #include <stddef.h> // offsetof
 #include <assert.h>
 
-#define CONFIG_ADB_TCP_PORT 5555
-#define CONFIG_ADB_TCP_SERVER y
-
 #ifndef CONFIG_PATH_MAX
 #define CONFIG_PATH_MAX 256
 #endif
 
-#define CONFIG_ADB_CNXN_PAYLOAD_SIZE 1024 // 256
-#define CONFIG_ADB_PAYLOAD_SIZE 64 // 256 // 40 // 72 // 40 // 4096 // 256 // 4096
+#define CONFIG_ADB_CNXN_PAYLOAD_SIZE 256 // 1024 // 256
+#define CONFIG_ADB_PAYLOAD_SIZE 256 // 64 // 256 // 40 // 72 // 40 // 4096 // 256 // 4096
 #define CONFIG_ADB_TOKEN_SIZE 20
 
 #define CONFIG_SYSTEM_ADB_FEATURES "cmd,shell_v1"
 
 #ifndef __NUTTX__
+#define CONFIG_SYSTEM_ADB_TCP_SERVER_PORT 5555
+#define CONFIG_SYSTEM_ADB_TCP_SERVER y
 #define CONFIG_SYSTEM_ADB_PRODUCT_NAME   "adb_dev"
 #define CONFIG_SYSTEM_ADB_PRODUCT_MODEL  "adb_board"
 #define CONFIG_SYSTEM_ADB_PRODUCT_DEVICE "NuttX_device"
-#define CONFIG_SYSTEM_ADB_TCP_FRAME_MAX  1
+#define CONFIG_SYSTEM_ADB_FRAME_MAX  1
 
 #define UNUSED(x) (void)(x)
 
@@ -61,11 +60,14 @@
 
 #include "hal/hal_uv.h"
 
+#if 0
 #define adb_log(...) do { \
     printf("%s: ", __func__); \
     printf(__VA_ARGS__); \
     } while (0)
-// _info(__VA_ARGS__)
+#else
+#define adb_log(...) _info(__VA_ARGS__)
+#endif
 
 #define container_of(ptr, type, member) \
   ((type *)((uintptr_t)(ptr) - offsetof(type, member)))
@@ -207,6 +209,7 @@ int adb_hal_random(void *buf, size_t len);
 /* Client */
 
 adb_client_t* adb_create_client(size_t size);
+void adb_init_client(adb_client_t *client);
 void adb_destroy_client(adb_client_t *client);
 void adb_client_kick_services(adb_client_t *client);
 

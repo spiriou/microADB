@@ -42,6 +42,7 @@ int adb_fill_connect_data(char *buf, size_t bufsize)
     }
 #endif
 
+#if 0
 #ifdef CONFIG_SYSTEM_ADB_PRODUCT_MODEL
     remaining -= len;
     buf += len;
@@ -70,7 +71,7 @@ int adb_fill_connect_data(char *buf, size_t bufsize)
     if (len >= remaining) {
         return bufsize;
     }
-
+#endif
     return bufsize - remaining + len;
 }
 

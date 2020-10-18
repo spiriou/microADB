@@ -19,8 +19,14 @@ adb_context_t* adb_hal_create_context() {
 #endif
     adbd->context.clients = NULL;
 
-#ifdef CONFIG_ADB_TCP_SERVER
-    if (tcp_setup_server(adbd)) {
+#ifdef CONFIG_SYSTEM_ADB_TCP_SERVER
+    if (adb_uv_tcp_setup(adbd)) {
+        goto exit_fail;
+    }
+#endif
+
+#ifdef CONFIG_SYSTEM_ADB_USB_SERVER
+    if (adb_uv_usb_setup(adbd, "/dev/adb0")) {
         goto exit_fail;
     }
 #endif
@@ -57,6 +63,31 @@ int adb_hal_run(adb_context_t *context) {
     return 0;
 }
 
+adb_client_t* adb_uv_create_client(size_t size) {
+    adb_client_uv_t *client;
+    client = (adb_client_uv_t*)adb_create_client(size);
+    if (client == NULL) {
+        return NULL;
+    }
+
+    client->cur_packet = NULL;
+    client->frame_count = 0;
+    return &client->client;
+}
+
+void adb_uv_close_client(adb_client_uv_t *client) {
+
+    if (client->cur_packet) {
+        adb_hal_apacket_release(&client->client, &client->cur_packet->p);
+        client->cur_packet = NULL;
+    }
+
+    adb_destroy_client(&client->client);
+}
+
+
+#ifdef CONFIG_SYSTEM_ADB_AUTHENTICATION
 int adb_hal_random(void *buf, size_t len) {
     return uv_random(NULL, NULL, buf, len, 0, NULL);
 }
+#endif

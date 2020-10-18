@@ -115,7 +115,9 @@ static int state_init_recv(afs_service_t *svc, apacket *p);
 
 static int state_process_send_header(afs_service_t *svc, apacket *p);
 static int state_process_send_file(afs_service_t *svc, apacket *p);
+#ifdef CONFIG_SYSTEM_ADB_FILE_SYMLINK
 static int state_process_send_sym(afs_service_t *svc, apacket *p);
+#endif
 static int state_process_recv(afs_service_t *svc, apacket *p);
 static int state_process_list(afs_service_t *svc, apacket *p);
 
@@ -532,6 +534,7 @@ static int state_process_send_file(afs_service_t *svc, apacket *p)
     return 1;
 }
 
+#ifdef CONFIG_SYSTEM_ADB_FILE_SYMLINK
 static int state_process_send_sym(afs_service_t *svc, apacket *p) {
     int ret;
 
@@ -562,6 +565,7 @@ static int state_process_send_sym(afs_service_t *svc, apacket *p) {
     svc->state -= 1;
     return 1;
 }
+#endif
 
 static int state_init_recv(afs_service_t *svc, apacket *p)
 {
@@ -713,7 +717,12 @@ static int file_sync_on_write(adb_service_t *service, apacket *p) {
                 break;
 
             case AFS_STATE_PROCESS_SEND_SYM_DATA:
+#ifdef CONFIG_SYSTEM_ADB_FILE_SYMLINK
                 ret = state_process_send_sym(svc, p);
+#else
+                adb_log("symlink not supported\n");
+                ret = -1;
+#endif
                 break;
 
             default:

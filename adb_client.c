@@ -409,7 +409,9 @@ static adb_service_t *adb_service_open(adb_client_t *client, const char *name, a
     }
 #endif
 
+#if defined(CONFIG_SYSTEM_ADB_SHELL_SERVICE) || defined(CONFIG_SYSTEM_ADB_LOGCAT_SERVICE)
 service_created:
+#endif
     if (svc == NULL) {
     	goto exit_error;
     }
@@ -477,17 +479,21 @@ void adb_client_kick_services(adb_client_t *client) {
     }
 }
 
+void adb_init_client(adb_client_t *client) {
+    adb_log("entry %p\n", client);
+    /* setup adb_client */
+    client->next_service_id = 1;
+    client->services = NULL;
+    client->is_connected = 0;
+}
+
 adb_client_t *adb_create_client(size_t size) {
     adb_client_t *client = adb_hal_create_client(size);
     if (client == NULL) {
         return NULL;
     }
 
-    adb_log("entry %p\n", client);
-    /* setup adb_client */
-    client->next_service_id = 1;
-    client->services = NULL;
-    client->is_connected = 0;
+    adb_init_client(client);
     return client;
 }
 
@@ -508,9 +514,10 @@ void adb_process_packet(adb_client_t *client, apacket *p)
 {
     p->write_len = 0;
     adb_log("READ FRAME %p\n", p);
-    DumpHex(&p->msg, sizeof(p->msg)+p->msg.data_length);
+    // DumpHex(&p->msg, sizeof(p->msg)+p->msg.data_length);
 
     if (!client->is_connected) {
+        adb_log("TEST %08x %08x\n", A_CNXN, 0x4e584e43);
     	if (p->msg.command == A_CNXN) {
     		/* CONNECT(version, maxdata, "system-id-string") */
 #ifdef CONFIG_SYSTEM_ADB_AUTHENTICATION
@@ -530,6 +537,13 @@ void adb_process_packet(adb_client_t *client, apacket *p)
 #endif /* CONFIG_SYSTEM_ADB_AUTHENTICATION */
 
     	goto invalid_frame;
+    }
+
+    if (p->msg.command == 0x4e584e43) {
+        adb_log("WTF CNXN !!!!\n");
+        send_cnxn_frame(client, p);
+        client->is_connected = 1;
+        return;
     }
 
     /* Client is connected */
