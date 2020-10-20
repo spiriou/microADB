@@ -219,7 +219,6 @@ static void handle_write_frame(adb_client_t *client, apacket *p) {
     svc = adb_client_find_service(client, p->msg.arg1, p->msg.arg0);
     if (svc == NULL) {
 	    /* Ensure service is closed on peer side */
-        adb_log("Service NULL %d %d\n", p->msg.arg1, p->msg.arg0);
 	    send_close_frame(client, p, p->msg.arg1, p->msg.arg0);
 	    return;
     }
@@ -520,39 +519,31 @@ void adb_process_packet(adb_client_t *client, apacket *p)
     adb_log("READ FRAME %p\n", p);
     // DumpHex(&p->msg, sizeof(p->msg)+p->msg.data_length);
 
-    if (!client->is_connected) {
-        adb_log("TEST %08x %08x\n", A_CNXN, 0x4e584e43);
-    	if (p->msg.command == A_CNXN) {
-    		/* CONNECT(version, maxdata, "system-id-string") */
+	if (p->msg.command == A_CNXN) {
+		/* CONNECT(version, maxdata, "system-id-string") */
 #ifdef CONFIG_SYSTEM_ADB_AUTHENTICATION
-        	send_auth_request(client, p);
-#else
-        	send_cnxn_frame(client, p);
-        	client->is_connected = 1;
+        if (!client->is_connected) {
+            send_auth_request(client, p);
+            return;
+        }
 #endif /* CONFIG_SYSTEM_ADB_AUTHENTICATION */
-        	return;
-    	}
+    	send_cnxn_frame(client, p);
+    	client->is_connected = 1;
+    	return;
+	}
 
 #ifdef CONFIG_SYSTEM_ADB_AUTHENTICATION
-    	else if (p->msg.command == A_AUTH) {
-    		handle_auth_frame(client, p);
-    		return;
-    	}
+    if (p->msg.command == A_AUTH) {
+        if (!client->is_connected) {
+            handle_auth_frame(client, p);
+            return;
+        }
+
+        goto invalid_frame;
+    }
 #endif /* CONFIG_SYSTEM_ADB_AUTHENTICATION */
-
-    	goto invalid_frame;
-    }
-
-    if (p->msg.command == 0x4e584e43) {
-        adb_log("WTF CNXN !!!!\n");
-        send_cnxn_frame(client, p);
-        client->is_connected = 1;
-        return;
-    }
 
     /* Client is connected */
-
-    adb_log("process 0x%x %d\n", p->msg.command, p->msg.data_length);
 
     switch(p->msg.command){
     case A_OPEN:

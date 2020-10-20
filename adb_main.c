@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
 
     adb_context_t* ctx;
 
-#ifdef __NUTTX__
+#ifdef CONFIG_SYSTEM_ADB_BOARD_INIT
     boardctl(BOARDIOC_INIT, 0);
 #endif
 

@@ -34,11 +34,9 @@
 #define CONFIG_PATH_MAX 256
 #endif
 
-#define CONFIG_ADB_CNXN_PAYLOAD_SIZE 256 // 1024 // 256
-#define CONFIG_ADB_PAYLOAD_SIZE 256 // 64 // 256 // 40 // 72 // 40 // 4096 // 256 // 4096
+#define CONFIG_ADB_CNXN_PAYLOAD_SIZE 1024 // 256
+#define CONFIG_ADB_PAYLOAD_SIZE 64 // 256 // 40 // 72 // 40 // 4096 // 256 // 4096
 #define CONFIG_ADB_TOKEN_SIZE 20
-
-#define CONFIG_SYSTEM_ADB_FEATURES "cmd,shell_v1"
 
 #ifndef __NUTTX__
 #define CONFIG_SYSTEM_ADB_TCP_SERVER_PORT 5555
@@ -46,6 +44,7 @@
 #define CONFIG_SYSTEM_ADB_PRODUCT_NAME   "adb_dev"
 #define CONFIG_SYSTEM_ADB_PRODUCT_MODEL  "adb_board"
 #define CONFIG_SYSTEM_ADB_PRODUCT_DEVICE "NuttX_device"
+#define CONFIG_SYSTEM_ADB_FEATURES       "cmd,shell_v1"
 #define CONFIG_SYSTEM_ADB_FRAME_MAX  1
 
 #define UNUSED(x) (void)(x)
@@ -54,6 +53,8 @@
     fprintf(stderr, "%s: ", __func__); \
     fprintf(stderr, __VA_ARGS__); \
     } while (0)
+#else
+#include <nuttx/config.h>
 #endif
 
 #define CONFIG_SYSTEM_ADB_DEVICE_ID "abcd"

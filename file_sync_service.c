@@ -203,15 +203,15 @@ static int create_path_directories(char *name)
     if(name[0] != '/') return -1;
 
     for(;;) {
-        adb_log("loop <%s>\n", x);
+        // adb_log("loop <%s>\n", x);
         x = strchr(++x, '/');
         if(!x) return 0;
         *x = 0;
-        adb_log("try <%s>\n", name);
+        // adb_log("try <%s>\n", name);
         ret = mkdir(name, mode);
         *x = '/';
         if((ret < 0) && (errno != EEXIST)) {
-            adb_log("mkdir(\"%s\") -> %s\n", name, strerror(errno));
+            // adb_log("mkdir(\"%s\") -> %s\n", name, strerror(errno));
             return ret;
         }
     }
@@ -664,7 +664,6 @@ int state_wait_cmd_data(afs_service_t *svc, apacket *p)
 
     svc->buff[svc->namelen] = 0;
 
-    adb_log("PROCESS cmd 0x%x\n", svc->cmd);
     switch(svc->cmd) {
     case ID_STAT:
         ret = state_init_stat(svc, p);
@@ -680,7 +679,7 @@ int state_wait_cmd_data(afs_service_t *svc, apacket *p)
         break;
 
     case ID_QUIT:
-        adb_log("got QUIT command\n");
+        // adb_log("got QUIT command\n");
         ret = 0;
         break;
 
@@ -752,7 +751,7 @@ static int file_sync_on_ack(adb_service_t *service, apacket *p) {
     /* No data in notify packet */
     switch (svc->state) {
         case AFS_STATE_WAIT_CMD:
-            adb_log("STATE IDLE/QUIT\n");
+            // adb_log("STATE IDLE/QUIT\n");
             ret = -1;
             break;
 

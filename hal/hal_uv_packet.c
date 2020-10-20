@@ -165,10 +165,8 @@ void adb_uv_on_data_available(adb_client_uv_t *client, uv_stream_t *stream,
         if (client->cur_len+nread >= (int)sizeof(amessage) && (
             (!client->client.is_connected && adb_check_auth_frame_header(&up->p)) ||
             (client->client.is_connected && adb_check_frame_header(&up->p)))) {
-            sleep(2);
             adb_log("bad header: terminated (data)\n");
             DumpHex(&up->p.msg, sizeof(amessage));
-            sleep(1);
             client->client.ops->close(&client->client);
             return;
         }
@@ -183,10 +181,8 @@ void adb_uv_on_data_available(adb_client_uv_t *client, uv_stream_t *stream,
     /* Check data */
 
     if(adb_check_frame_data(&up->p)) {
-        sleep(2);
         adb_log("bad data: terminated (data)\n");
         DumpHex(&up->p.msg, up->p.msg.data_length+sizeof(amessage));
-        sleep(1);
         client->client.ops->close(&client->client);
         return;
     }
