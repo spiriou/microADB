@@ -61,7 +61,7 @@ void adb_uv_after_write(uv_write_t* req, int status) {
     apacket_uv_t *up = container_of(req, apacket_uv_t, wr);
     adb_client_uv_t *client = (adb_client_uv_t*)req->data;
 
-    adb_log("entry %p\n", &up->p);
+    // adb_log("entry %p\n", &up->p);
 
     if (status < 0) {
         adb_log("failed %d\n", status);
@@ -96,11 +96,14 @@ void adb_uv_allocate_frame(adb_client_uv_t *client, uv_buf_t* buf) {
             buf->len = sizeof(ap->p.msg)-client->cur_len;
         }
         else {
+            buf->len = sizeof(ap->p.msg)+ap->p.msg.data_length-client->cur_len;
             if (!client->client.is_connected) {
-                buf->len = sizeof(ap->p.msg)+CONFIG_ADB_CNXN_PAYLOAD_SIZE-client->cur_len;
+                // buf->len = sizeof(ap->p.msg)+CONFIG_ADB_CNXN_PAYLOAD_SIZE-client->cur_len;
+                assert(ap->p.msg.data_length <= CONFIG_ADB_CNXN_PAYLOAD_SIZE);
             }
             else {
-                buf->len = sizeof(ap->p.msg)+CONFIG_ADB_PAYLOAD_SIZE-client->cur_len;
+                // buf->len = sizeof(ap->p.msg)+CONFIG_ADB_PAYLOAD_SIZE-client->cur_len;
+                assert(ap->p.msg.data_length <= CONFIG_ADB_PAYLOAD_SIZE);
             }
         }
     }
@@ -162,8 +165,10 @@ void adb_uv_on_data_available(adb_client_uv_t *client, uv_stream_t *stream,
         if (client->cur_len+nread >= (int)sizeof(amessage) && (
             (!client->client.is_connected && adb_check_auth_frame_header(&up->p)) ||
             (client->client.is_connected && adb_check_frame_header(&up->p)))) {
+            sleep(2);
             adb_log("bad header: terminated (data)\n");
             DumpHex(&up->p.msg, sizeof(amessage));
+            sleep(1);
             client->client.ops->close(&client->client);
             return;
         }
@@ -178,8 +183,10 @@ void adb_uv_on_data_available(adb_client_uv_t *client, uv_stream_t *stream,
     /* Check data */
 
     if(adb_check_frame_data(&up->p)) {
+        sleep(2);
         adb_log("bad data: terminated (data)\n");
         DumpHex(&up->p.msg, up->p.msg.data_length+sizeof(amessage));
+        sleep(1);
         client->client.ops->close(&client->client);
         return;
     }

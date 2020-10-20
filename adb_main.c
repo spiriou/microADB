@@ -19,6 +19,9 @@
  */
 
 #include "adb.h"
+#ifdef __NUTTX__
+#include <sys/boardctl.h>
+#endif
 
 int adb_fill_connect_data(char *buf, size_t bufsize)
 {
@@ -42,7 +45,7 @@ int adb_fill_connect_data(char *buf, size_t bufsize)
     }
 #endif
 
-#if 0
+
 #ifdef CONFIG_SYSTEM_ADB_PRODUCT_MODEL
     remaining -= len;
     buf += len;
@@ -65,13 +68,15 @@ int adb_fill_connect_data(char *buf, size_t bufsize)
     }
 #endif
 
+    remaining -= len;
+    buf += len;
     len = snprintf(buf, remaining, "features=" CONFIG_SYSTEM_ADB_FEATURES);
                    // "features=cmd,shell_v2");
 
     if (len >= remaining) {
         return bufsize;
     }
-#endif
+
     return bufsize - remaining + len;
 }
 
@@ -80,6 +85,10 @@ int main(int argc, char **argv) {
     UNUSED(argv);
 
     adb_context_t* ctx;
+
+#ifdef __NUTTX__
+    boardctl(BOARDIOC_INIT, 0);
+#endif
 
     ctx = adb_hal_create_context();
     if (!ctx) {

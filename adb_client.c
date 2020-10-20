@@ -78,8 +78,11 @@ static void send_frame(adb_client_t *client, apacket *p)
     }
     p->msg.data_check = sum;
 
-    adb_log("WRITE FRAME %p\n", p);
-    DumpHex(&p->msg, sizeof(p->msg)+p->msg.data_length);
+    adb_log("WRITE FRAME %p %d 0x%x\n",
+        p,
+        p->msg.data_length,
+        p->msg.data_check);
+    // DumpHex(&p->msg, sizeof(p->msg)+p->msg.data_length);
 
     int ret = client->ops->write(client, p);
 
@@ -216,6 +219,7 @@ static void handle_write_frame(adb_client_t *client, apacket *p) {
     svc = adb_client_find_service(client, p->msg.arg1, p->msg.arg0);
     if (svc == NULL) {
 	    /* Ensure service is closed on peer side */
+        adb_log("Service NULL %d %d\n", p->msg.arg1, p->msg.arg0);
 	    send_close_frame(client, p, p->msg.arg1, p->msg.arg0);
 	    return;
     }
@@ -547,6 +551,8 @@ void adb_process_packet(adb_client_t *client, apacket *p)
     }
 
     /* Client is connected */
+
+    adb_log("process 0x%x %d\n", p->msg.command, p->msg.data_length);
 
     switch(p->msg.command){
     case A_OPEN:

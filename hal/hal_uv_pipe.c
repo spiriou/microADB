@@ -143,7 +143,7 @@ static void exec_on_data_available(uv_poll_t* handle, int status, int events) {
         return;
     }
 
-    ap = adb_uv_packet_allocate((adb_client_tcp_t*)client, 0);
+    ap = adb_uv_packet_allocate((adb_client_uv_t*)client, 0);
     if (ap == NULL) {
         adb_log("frame allocation failed\n");
         uv_poll_stop(&pipe->handle);
@@ -397,7 +397,7 @@ int adb_hal_exec(char * const argv[], adb_pipe_t *pipe, void (*on_data_cb)(adb_p
     read_fd = ret;
     adb_log("PIPE2 OPEN %d %d\n", ret, errno);
 
-    adb_client_t *client = (adb_client_t*)pipe->handle.data;
+    adb_client_uv_t *client = (adb_client_uv_t*)pipe->handle.data;
     // FIXME
     ret = uv_poll_init(((uv_handle_t*)(client+1))->loop, &pipe->handle, ret);
     adb_log("poll_init %d\n", ret);

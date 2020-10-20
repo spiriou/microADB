@@ -664,6 +664,7 @@ int state_wait_cmd_data(afs_service_t *svc, apacket *p)
 
     svc->buff[svc->namelen] = 0;
 
+    adb_log("PROCESS cmd 0x%x\n", svc->cmd);
     switch(svc->cmd) {
     case ID_STAT:
         ret = state_init_stat(svc, p);

@@ -33,25 +33,93 @@ static void usb_uv_on_data_available(uv_stream_t* handle,
     adb_uv_on_data_available(&client->uc, (uv_stream_t*)handle, nread, buf);
 }
 
+#if 1
 static int usb_uv_write(adb_client_t *c, apacket *p) {
-    uv_buf_t buf;
+    uv_buf_t buf[2];
+    int buf_cnt;
     apacket_uv_t *up = container_of(p, apacket_uv_t, p);
     adb_client_usb_t *client = container_of(c, adb_client_usb_t, uc.client);
 
-    buf = uv_buf_init((char*)&p->msg,
-        sizeof(p->msg) + p->msg.data_length);
+    // buf[0] = uv_buf_init((char*)&p->msg,
+    //     sizeof(p->msg)); //  + p->msg.data_length);
+    // buf[1] = uv_buf_init((char*)&p->data,
+    //     p->msg.data_length);
+
+
+    buf[0].base = (char*)&p->msg;
+    buf[0].len  = sizeof(p->msg);
+
+    if (p->msg.data_length > 0) {
+        buf[1].base = (char*)p->data;
+        buf[1].len  = p->msg.data_length;
+        buf_cnt = 2;
+    }
+    else {
+        buf_cnt = 1;
+    }
 
     /* Packet is now tracked by libuv */
     up->wr.data = &client->uc;
 
-    if (uv_write(&up->wr, (uv_stream_t*)&client->pipe, &buf, 1, adb_uv_after_write)) {
-        adb_log("write %d %p %d\n", buf.len, buf.base, client->pipe.io_watcher.fd);
+    if (uv_write(&up->wr, (uv_stream_t*)&client->pipe, buf, buf_cnt, adb_uv_after_write)) {
+        // adb_log("write %d %p %d\n", buf.len, buf.base, client->pipe.io_watcher.fd);
         fatal("uv_write failed");
         return -1;
     }
 
     return 0;
 }
+#else
+static void adb_uv_after_header_write(uv_write_t* req, int status) {
+    apacket_uv_t *up = container_of(req, apacket_uv_t, wr);
+    adb_client_uv_t *client = (adb_client_uv_t*)req->data;
+
+    adb_log("entry %p\n", &up->p);
+
+    if (status < 0) {
+        adb_log("failed %d\n", status);
+        adb_hal_apacket_release(&client->client, &up->p);
+
+        client->client.ops->close(&client->client);
+        return;
+    }
+    uv_buf_t buf;
+    apacket_uv_t *up = container_of(p, apacket_uv_t, p);
+    adb_client_usb_t *client = container_of(c, adb_client_usb_t, uc.client);
+
+    buf.base = (char*)p->data;
+    buf.len  = p->msg.data_length;
+
+    /* Packet is now tracked by libuv */
+    up->wr.data = &client->uc;
+
+    if (uv_write(&up->wr, (uv_stream_t*)&client->pipe, &buf, 1, adb_uv_after_write)) {
+        // adb_log("write %d %p %d\n", buf.len, buf.base, client->pipe.io_watcher.fd);
+        fatal("uv_write failed");
+        // return -1;
+    }
+}
+
+static int usb_uv_write(adb_client_t *c, apacket *p) {
+    uv_buf_t buf;
+    apacket_uv_t *up = container_of(p, apacket_uv_t, p);
+    adb_client_usb_t *client = container_of(c, adb_client_usb_t, uc.client);
+
+    buf.base = (char*)&p->msg;
+    buf.len  = sizeof(p->msg);
+
+    /* Packet is now tracked by libuv */
+    up->wr.data = &client->uc;
+
+    if (uv_write(&up->wr, (uv_stream_t*)&client->pipe, &buf, 1, adb_uv_after_header_write)) {
+        // adb_log("write %d %p %d\n", buf.len, buf.base, client->pipe.io_watcher.fd);
+        fatal("uv_write failed");
+        return -1;
+    }
+
+    return 0;
+}
+#endif
 
 static void usb_uv_kick(adb_client_t *c) {
     adb_client_usb_t *client = container_of(c, adb_client_usb_t, uc.client);
