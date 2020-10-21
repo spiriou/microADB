@@ -61,7 +61,7 @@
 
 #include "hal/hal_uv.h"
 
-#if 0
+#if 1
 #define adb_log(...) do { \
     printf("%s: ", __func__); \
     printf(__VA_ARGS__); \

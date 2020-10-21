@@ -78,7 +78,9 @@ static int shell_on_write(adb_service_t *service, apacket *p) {
         return -1;
     }
 
+    // FIXME refactor all shell_service
     ret = adb_hal_pipe_write(&svc->pipe, p->data, p->msg.data_length);
+    assert(ret == p->msg.data_length);
     // adb_log("WRITE %d %d\n", ret, errno);
     return 0;
 }

@@ -89,9 +89,9 @@ static void logcat_on_data_available(uv_poll_t* handle, int status, int events) 
     int ret;
     apacket_uv_t *ap;
     alog_service_t *service = container_of(handle, alog_service_t, poll);
-    adb_client_tcp_t *client = (adb_client_tcp_t*)handle->data;
+    adb_client_uv_t *client = (adb_client_uv_t*)handle->data;
 
-    ap = adb_uv_packet_allocate((adb_client_tcp_t*)client, 0);
+    ap = adb_uv_packet_allocate(client, 0);
     if (ap == NULL) {
         adb_log("frame allocation failed\n");
         uv_poll_stop(handle);
@@ -163,7 +163,7 @@ adb_service_t* logcat_service(adb_client_t *client, const char *params) {
         return NULL;
     }
 
-    uv_handle_t *handle = (uv_handle_t*)(client+1);
+    uv_handle_t *handle = (uv_handle_t*)((adb_client_uv_t*)client+1);
     ret = uv_poll_init(handle->loop, &service->poll, ret);
     assert(ret == 0);
 
