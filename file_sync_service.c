@@ -360,9 +360,9 @@ static int state_process_list(afs_service_t *svc, apacket *p)
             st.st_mtime = 0;
         }
 
-        // adb_log("list file <%s> 0x%x 0x%x s=0x%x t=0x%x\n",
-        //     svc->list.path, st.st_mode, htoll(st.st_mode),
-        //     st.st_size, st.st_mtime);
+        adb_log("list file <%s> 0x%x 0x%x s=0x%x t=0x%x\n",
+            svc->list.path, st.st_mode, htoll(st.st_mode),
+            st.st_size, st.st_mtime);
 
         msg->dent.mode = htoll(st.st_mode);
         msg->dent.size = htoll(st.st_size);

@@ -8,7 +8,7 @@ void adb_hal_apacket_release(adb_client_t *c, apacket *p) {
     adb_client_uv_t *client = container_of(c, adb_client_uv_t, client);
     apacket_uv_t *up = container_of(p, apacket_uv_t, p);
 
-    adb_log("entry frame_count %d\n", client->frame_count);
+    // adb_log("entry frame_count %d\n", client->frame_count);
 
     /* Sanity check */
 
@@ -22,7 +22,7 @@ void adb_hal_apacket_release(adb_client_t *c, apacket *p) {
         client->frame_count -= 1;
     }
 
-    adb_log("%p\n", &up->p);
+    // adb_log("%p\n", &up->p);
     free(up);
 }
 
@@ -53,7 +53,7 @@ apacket_uv_t* adb_uv_packet_allocate(adb_client_uv_t *client, int is_connect)
     }
 
     client->frame_count += 1;
-    adb_log("frame_count=%d %p\n", client->frame_count, &p->p);
+    // adb_log("frame_count=%d %p\n", client->frame_count, &p->p);
     return p;
 }
 
@@ -72,7 +72,7 @@ void adb_uv_after_write(uv_write_t* req, int status) {
     }
 
     if (up->p.write_len > 0) {
-        adb_log("restart\n");
+        // adb_log("restart\n");
         adb_client_send_service_payload(&client->client, &up->p);
         return;
     }
@@ -83,7 +83,7 @@ void adb_uv_after_write(uv_write_t* req, int status) {
 void adb_uv_allocate_frame(adb_client_uv_t *client, uv_buf_t* buf) {
     apacket_uv_t *ap;
 
-    adb_log("entry %p %d\n", client->cur_packet, client->frame_count);
+    // adb_log("entry %p %d\n", client->cur_packet, client->frame_count);
 
     if (client->cur_packet) {
         /* Current frame not complete */
@@ -112,7 +112,7 @@ void adb_uv_allocate_frame(adb_client_uv_t *client, uv_buf_t* buf) {
         ap = adb_uv_packet_allocate(client, !client->client.is_connected);
 
         if (ap == NULL) {
-            adb_log("frame allocation failed\n");
+            // adb_log("frame allocation failed\n");
             buf->len = 0;
             /* Wait for available memory */
             // client->client.ops->close(&client->client);
@@ -133,7 +133,7 @@ void adb_uv_on_data_available(adb_client_uv_t *client, uv_stream_t *stream,
     apacket_uv_t *up;
 
     if (nread == UV_ENOBUFS) {
-        adb_log("STOP READ EVENT %d\n", client->frame_count);
+        // adb_log("STOP READ EVENT %d\n", client->frame_count);
         uv_read_stop(stream);
         // client->frame_count = -1;
         return;

@@ -45,7 +45,7 @@ static int shell_on_write(adb_service_t *service, apacket *p);
 static void shell_close(struct adb_service_s *service);
 
 static void shell_on_data_available(adb_pipe_t* pipe, apacket* p) {
-    adb_log("entry %p %p\n", p, pipe);
+    // adb_log("entry %p %p\n", p, pipe);
 
     ash_service_t *service = container_of(pipe, ash_service_t, pipe);
 
@@ -79,7 +79,7 @@ static int shell_on_write(adb_service_t *service, apacket *p) {
     }
 
     ret = adb_hal_pipe_write(&svc->pipe, p->data, p->msg.data_length);
-    adb_log("WRITE %d %d\n", ret, errno);
+    // adb_log("WRITE %d %d\n", ret, errno);
     return 0;
 }
 
@@ -98,7 +98,7 @@ static void shell_on_close(adb_pipe_t *pipe) {
 }
 
 static void shell_on_kick(adb_service_t *service) {
-    adb_log("entry\n");
+    // adb_log("entry\n");
     int ret;
     ash_service_t *svc = container_of(service, ash_service_t, service);
     ret = adb_hal_pipe_start(&svc->pipe, shell_on_data_available);

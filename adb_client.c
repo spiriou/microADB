@@ -78,10 +78,10 @@ static void send_frame(adb_client_t *client, apacket *p)
     }
     p->msg.data_check = sum;
 
-    adb_log("WRITE FRAME %p %d 0x%x\n",
-        p,
-        p->msg.data_length,
-        p->msg.data_check);
+    // adb_log("WRITE FRAME %p %d 0x%x\n",
+    //     p,
+    //     p->msg.data_length,
+    //     p->msg.data_check);
     // DumpHex(&p->msg, sizeof(p->msg)+p->msg.data_length);
 
     int ret = client->ops->write(client, p);
@@ -469,11 +469,9 @@ static adb_service_t* adb_client_find_service(adb_client_t *client, int id, int 
 }
 
 void adb_client_kick_services(adb_client_t *client) {
-	adb_log("entry %p\n", client);
     adb_service_t *service = client->services;
     while (service != NULL) {
-        adb_log("TEST %p\n", service);
-        adb_log("kick service %d <-> %d\n", service->id, service->peer_id);
+        // adb_log("kick service %d <-> %d\n", service->id, service->peer_id);
         // FIXME send close frame ?
         if (service->ops->on_kick) {
         	service->ops->on_kick(service);
@@ -504,7 +502,6 @@ void adb_destroy_client(adb_client_t *client) {
 	adb_log("entry %p\n", client);
     adb_service_t *service = client->services;
     while (service != NULL) {
-        adb_log("TEST %p\n", service);
         adb_log("stop service %d <-> %d\n", service->id, service->peer_id);
         // FIXME send close frame ?
         adb_service_close(client, service, NULL);
@@ -516,7 +513,7 @@ void adb_destroy_client(adb_client_t *client) {
 void adb_process_packet(adb_client_t *client, apacket *p)
 {
     p->write_len = 0;
-    adb_log("READ FRAME %p\n", p);
+    // adb_log("READ FRAME %p\n", p);
     // DumpHex(&p->msg, sizeof(p->msg)+p->msg.data_length);
 
 	if (p->msg.command == A_CNXN) {
