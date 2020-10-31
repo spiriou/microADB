@@ -51,10 +51,8 @@
 
 /* Logging methods */
 
-#define adb_log(...) do { \
-    printf("%s: ", __func__); \
-    printf(__VA_ARGS__); \
-    } while (0)
+void adb_log_impl(FAR const char *func, int line, FAR const char *fmt, ...);
+#define adb_log(...) adb_log_impl(__func__, __LINE__, __VA_ARGS__)
 
 /* ADB protocol definitions */
 

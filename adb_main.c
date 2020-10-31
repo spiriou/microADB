@@ -21,6 +21,15 @@
  * Public Functions
  ****************************************************************************/
 
+void adb_log_impl(FAR const char *func, int line, FAR const char *fmt, ...) {
+  va_list ap;
+  printf("%s: ", __func__);
+
+  va_start(ap, fmt);
+  vprintf(fmt, ap);
+  va_end(ap);
+}
+
 int main(int argc, char **argv) {
     UNUSED(argc);
     UNUSED(argv);
