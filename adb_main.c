@@ -15,13 +15,14 @@
  *
  */
 
+#include <stdarg.h>
 #include "adb.h"
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-void adb_log_impl(FAR const char *func, int line, FAR const char *fmt, ...) {
+void adb_log_impl(const char *func, int line, const char *fmt, ...) {
   va_list ap;
   printf("%s: ", __func__);
 

@@ -51,7 +51,7 @@
 
 /* Logging methods */
 
-void adb_log_impl(FAR const char *func, int line, FAR const char *fmt, ...);
+void adb_log_impl(const char *func, int line, const char *fmt, ...);
 #define adb_log(...) adb_log_impl(__func__, __LINE__, __VA_ARGS__)
 
 /* ADB protocol definitions */
