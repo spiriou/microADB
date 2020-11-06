@@ -24,7 +24,7 @@
 
 void adb_log_impl(const char *func, int line, const char *fmt, ...) {
   va_list ap;
-  printf("%s: ", __func__);
+  printf("%s (%d): ", func, line);
 
   va_start(ap, fmt);
   vprintf(fmt, ap);

@@ -12,6 +12,10 @@ option(ADBD_AUTHENTICATION "adb authentication"    OFF)
 option(ADBD_AUTH_PUBKEY    "adb auth public key"   OFF)
 option(ADBD_FILE_SERVICE   "adb file sync service" OFF)
 
+option(ADBD_SHELL_SERVICE   "adb shell service" OFF)
+set(ADBD_SHELL_SERVICE_PATH "/bin/bash" CACHE STRING "")
+set(ADBD_SHELL_SERVICE_CMD  "sh" CACHE STRING "")
+
 set(ADBD_CNXN_PAYLOAD_SIZE "1024" CACHE STRING "")
 set(ADBD_PAYLOAD_SIZE        "64" CACHE STRING "")
 set(ADBD_FRAME_MAX            "1" CACHE STRING "")
@@ -43,6 +47,10 @@ if(ADBD_FILE_SERVICE)
   set(ADB_SRCS ${ADB_SRCS} file_sync_service.c)
 endif()
 
+if(ADBD_SHELL_SERVICE)
+  set(ADB_SRCS ${ADB_SRCS} hal/shell_service_uv.c)
+endif()
+
 add_executable(adbd ${ADB_SRCS})
 
 target_compile_definitions(adbd PUBLIC -DCONFIG_ADBD_CNXN_PAYLOAD_SIZE=${ADBD_CNXN_PAYLOAD_SIZE})
@@ -68,6 +76,14 @@ endif()
 
 if(ADBD_FILE_SERVICE)
   target_compile_definitions(adbd PUBLIC -DCONFIG_ADBD_FILE_SERVICE=1)
+endif()
+
+if(ADBD_SHELL_SERVICE)
+  target_compile_definitions(adbd PUBLIC -DCONFIG_ADBD_SHELL_SERVICE=1)
+  target_compile_definitions(adbd PUBLIC
+    -DCONFIG_ADBD_SHELL_SERVICE_PATH="${ADBD_SHELL_SERVICE_PATH}")
+  target_compile_definitions(adbd PUBLIC
+    -DCONFIG_ADBD_SHELL_SERVICE_CMD="${ADBD_SHELL_SERVICE_CMD}")
 endif()
 
 target_include_directories(adbd PRIVATE "${CMAKE_SOURCE_DIR}")
