@@ -10,15 +10,15 @@ find_package(uv REQUIRED)
 
 option(ADBD_AUTHENTICATION "adb authentication"    OFF)
 option(ADBD_AUTH_PUBKEY    "adb auth public key"   OFF)
-option(ADBD_FILE_SERVICE   "adb file sync service" OFF)
+option(ADBD_FILE_SERVICE   "adb file sync service" ON)
 
-option(ADBD_SHELL_SERVICE   "adb shell service" OFF)
+option(ADBD_SHELL_SERVICE   "adb shell service" ON)
 set(ADBD_SHELL_SERVICE_PATH "/bin/bash" CACHE STRING "")
 set(ADBD_SHELL_SERVICE_CMD  "sh" CACHE STRING "")
 
 set(ADBD_CNXN_PAYLOAD_SIZE "1024" CACHE STRING "")
 set(ADBD_PAYLOAD_SIZE        "64" CACHE STRING "")
-set(ADBD_FRAME_MAX            "1" CACHE STRING "")
+set(ADBD_FRAME_MAX            "4" CACHE STRING "")
 set(ADBD_TOKEN_SIZE          "20" CACHE STRING "")
 
 set(ADBD_DEVICE_ID      "\"abcd\""         CACHE STRING "")

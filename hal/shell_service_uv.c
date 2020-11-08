@@ -375,13 +375,13 @@ adb_service_t * shell_service(adb_client_t *client, const char *params) {
     options.stdio_count = 3;
     options.stdio = stdio;
     stdio[0].flags = UV_INHERIT_FD | UV_READABLE_PIPE;
-    stdio[0].data.file = fds[1];
+    stdio[0].data.fd = fds[1];
 
     stdio[1].flags = UV_INHERIT_FD | UV_WRITABLE_PIPE;
-    stdio[1].data.file = fds[1];
+    stdio[1].data.fd = fds[1];
 
     stdio[2].flags = UV_INHERIT_FD | UV_WRITABLE_PIPE;
-    stdio[2].data.file = fds[1];
+    stdio[2].data.fd = fds[1];
 
     options.exit_cb = on_child_exit;
     options.file = CONFIG_ADBD_SHELL_SERVICE_PATH;
