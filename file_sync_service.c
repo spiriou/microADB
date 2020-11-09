@@ -260,21 +260,20 @@ static int state_init_stat(afs_service_t *svc, apacket *p)
     union syncmsg *msg = (union syncmsg*)p->data;
 
     msg->stat.id = ID_STAT;
+    p->write_len = sizeof(msg->stat);
 
     if(!stat(svc->buff, &st)) {
         msg->stat.mode = htoll(st.st_mode);
         msg->stat.size = htoll(st.st_size);
         msg->stat.time = htoll(st.st_mtime);
-    } else {
-        /* File not found */
-        msg->stat.mode = 0;
-        msg->stat.size = 0;
-        msg->stat.time = 0;
+        return 1;
     }
 
-    svc->state = AFS_STATE_PROCESS_STAT;
-    p->write_len = sizeof(msg->stat);
-    return 1;
+    /* File not found */
+    msg->stat.mode = 0;
+    msg->stat.size = 0;
+    msg->stat.time = 0;
+    return 0;
 }
 
 static int state_init_list(afs_service_t *svc, apacket *p)
@@ -410,6 +409,7 @@ static int state_init_send(afs_service_t *svc, apacket *p)
     unlink(svc->buff);
 
     if(create_path_directories(svc->buff) != 0) {
+        adb_log("failed to create path <%s>\n", svc->buff);
         prepare_fail_errno(svc, p);
         return 0;
     }
@@ -481,11 +481,9 @@ static int state_process_send_header(afs_service_t *svc, apacket *p)
         prepare_fail_message(svc, p, "invalid data message");
         return 0;
     }
+
+    /* Read file length */
     svc->namelen = ltohl(msg->data.size);
-    if(svc->namelen >= SYNC_TEMP_BUFF_SIZE) {
-        prepare_fail_message(svc, p, "oversize data message");
-        return 0;
-    }
 
     svc->state += 1;
     return 1;
@@ -752,10 +750,6 @@ static int file_sync_on_ack(adb_service_t *service, apacket *p) {
 
     /* No data in notify packet */
     switch (svc->state) {
-        case AFS_STATE_WAIT_CMD:
-            ret = -1;
-            break;
-
         case AFS_STATE_PROCESS_RECV:
             ret = state_process_recv(svc, p);
             break;
@@ -767,6 +761,8 @@ static int file_sync_on_ack(adb_service_t *service, apacket *p) {
         case AFS_STATE_PROCESS_STAT:
         case AFS_STATE_PROCESS_SEND_FILE_HDR:
         case AFS_STATE_PROCESS_SEND_SYM_HDR:
+        case AFS_STATE_WAIT_CMD:
+            /* Nothing to do */
             ret = 0;
             break;
 
