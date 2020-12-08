@@ -31,6 +31,10 @@ void adb_log_impl(const char *func, int line, const char *fmt, ...) {
   va_end(ap);
 }
 
+void adb_reboot_impl(const char *target) {
+    adb_log("reboot requested: <%s>\n", target);
+}
+
 int main(int argc, char **argv) {
     UNUSED(argc);
     UNUSED(argv);

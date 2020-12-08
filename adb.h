@@ -54,6 +54,10 @@
 void adb_log_impl(const char *func, int line, const char *fmt, ...);
 #define adb_log(...) adb_log_impl(__func__, __LINE__, __VA_ARGS__)
 
+/* Platform support */
+
+void adb_reboot_impl(const char *target);
+
 /* ADB protocol definitions */
 
 #define A_SYNC 0x434e5953
