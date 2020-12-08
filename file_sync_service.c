@@ -266,6 +266,9 @@ static int state_init_stat(afs_service_t *svc, apacket *p)
         msg->stat.mode = htoll(st.st_mode);
         msg->stat.size = htoll(st.st_size);
         msg->stat.time = htoll(st.st_mtime);
+
+        /* There may be more data to process in current frame */
+        svc->state = AFS_STATE_WAIT_CMD;
         return 1;
     }
 
@@ -571,7 +574,8 @@ static int state_init_recv(afs_service_t *svc, apacket *p)
 {
     svc->recv.fd = open(svc->buff, O_RDONLY);
     if(svc->recv.fd < 0) {
-        adb_log("Cannot open file for read %d\n", svc->recv.fd);
+        adb_log("Cannot open file <%s> for read %d\n",
+            svc->buff, errno);
         prepare_fail_message(svc, p, "file does not exist");
         return 0;
     }

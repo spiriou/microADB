@@ -363,9 +363,7 @@ static adb_service_t *adb_service_open(adb_client_t *client, const char *name, a
 #endif
 
     else if (!strncmp(name, "reboot:", 7)) {
-        adb_log("got reboot <%s>\n", name);
-        p->write_len = sprintf((char*)p->data, "reboot")+1;
-        p->msg.arg1 = client->next_service_id++;
+        adb_reboot_impl(&name[7]);
 
         /* One shot service, skip service register */
         return NULL;
