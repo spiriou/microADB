@@ -32,12 +32,8 @@ static adb_context_uv_t g_adb_context;
 adb_context_t* adb_hal_create_context() {
     adb_context_uv_t *adbd = &g_adb_context;
 
-#ifdef __NUTTX__
-    uv_library_init(&adbd->uv_context);
-    adbd->loop = uv_default_loop(&adbd->uv_context);
-#else
     adbd->loop = uv_default_loop();
-#endif
+
     adbd->context.clients = NULL;
 
 #ifdef CONFIG_ADBD_TCP_SERVER
@@ -55,9 +51,8 @@ adb_context_t* adb_hal_create_context() {
     return &adbd->context;
 
 exit_fail:
-#ifdef __NUTTX__
-    uv_library_shutdown(&adbd->uv_context);
-#endif
+    uv_library_shutdown();
+
     return NULL;
 }
 

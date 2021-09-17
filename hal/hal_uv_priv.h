@@ -46,9 +46,6 @@ typedef struct adb_client_uv_s {
 
 typedef struct adb_context_uv_s {
     adb_context_t context;
-#ifdef __NUTTX__
-    uv_context_t uv_context;
-#endif
     uv_loop_t *loop;
 #ifdef CONFIG_ADBD_TCP_SERVER
     uv_tcp_t tcp_server;
