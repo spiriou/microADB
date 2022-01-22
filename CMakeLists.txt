@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.2)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/cmake/")
 
-add_compile_options(-Wall -Wextra -pedantic -Werror -Wno-format)
+add_compile_options(-Wall -Wextra -Werror -Wno-format)
 
 project (adbd)
 

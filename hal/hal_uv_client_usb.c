@@ -161,8 +161,5 @@ int adb_uv_usb_setup(adb_context_uv_t *adbd, const char *path) {
     /* TODO check return code */
     assert(ret == 0);
 
-    /* Insert client in context */
-    adb_register_client(&client->uc.client, &adbd->context);
-
     return 0;
 }
