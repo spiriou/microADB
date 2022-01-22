@@ -158,13 +158,9 @@ static void handle_close_frame(adb_client_t *client, apacket *p) {
 
     svc = adb_client_find_service(client, p->msg.arg1, p->msg.arg0);
     if (svc != NULL) {
-        svc->peer_id = p->msg.arg0;
-        adb_service_close(client, svc, p);
+       adb_service_close(client, svc, NULL);
     }
-    else {
-        /* Skip garbage close */
-        adb_hal_apacket_release(client, p);
-    }
+    adb_hal_apacket_release(client, p);
 }
 
 static void handle_write_frame(adb_client_t *client, apacket *p) {
