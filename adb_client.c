@@ -113,10 +113,10 @@ static void send_auth_request(adb_client_t *client, apacket *p)
     ret = adb_hal_random(client->token, sizeof(client->token));
 
     if (ret < 0) {
-    	adb_log("Failed to generate auth token %d %d\n", ret, errno);
-    	adb_hal_apacket_release(client, p);
-    	adb_destroy_client(client);
-    	return;
+        adb_log("Failed to generate auth token %d %d\n", ret, errno);
+        adb_hal_apacket_release(client, p);
+        client->ops->close(client);
+        return;
     }
 
     memcpy(p->data, client->token, sizeof(client->token));
