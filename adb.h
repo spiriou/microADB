@@ -18,10 +18,6 @@
 #ifndef __ADB_H
 #define __ADB_H
 
-#ifdef __NUTTX__
-#include <nuttx/config.h>
-#endif
-
 #include <limits.h>
 #include <sys/types.h>
 
@@ -29,10 +25,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <assert.h>
-
-#ifndef CONFIG_PATH_MAX
-#define CONFIG_PATH_MAX 256
-#endif
 
 #ifndef UNUSED
 #define UNUSED(x) (void)(x)

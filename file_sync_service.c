@@ -50,7 +50,7 @@
 
 #define min(a,b) ((a) < (b) ? (a):(b))
 
-#define SYNC_TEMP_BUFF_SIZE CONFIG_PATH_MAX
+#define SYNC_TEMP_BUFF_SIZE PATH_MAX
 
 /****************************************************************************
  * Private types
@@ -323,13 +323,13 @@ static int state_init_list(afs_service_t *svc, apacket *p)
     union syncmsg *msg = (union syncmsg*)p->data;
 
     int len = strlen(svc->buff);
-    /* CONFIG_PATH_MAX + "/" + 1 char filename at least + "\x0" => -3 */
-    if (len >= CONFIG_PATH_MAX-3) {
+    /* PATH_MAX + "/" + 1 char filename at least + "\x0" => -3 */
+    if (len >= PATH_MAX-3) {
         adb_log("Dir name too big\n");
         goto exit_done;
     }
 
-    svc->list.path = (char*)malloc(CONFIG_PATH_MAX);
+    svc->list.path = (char*)malloc(PATH_MAX);
     if (svc->list.path == NULL) {
         adb_log("Cannot allocate dirname\n");
         goto exit_done;
@@ -383,7 +383,7 @@ static int state_process_list(afs_service_t *svc, apacket *p)
 
     int len = strlen(de->d_name);
 
-    int remaining = CONFIG_PATH_MAX -
+    int remaining = PATH_MAX -
         (int)(svc->list.file_ptr - svc->list.path);
 
     if (len >= remaining) {
@@ -483,7 +483,7 @@ static int state_init_send_link(afs_service_t *svc, apacket *p)
     int len;
 
     len = strlen(svc->buff);
-    if (len >= CONFIG_PATH_MAX) {
+    if (len >= PATH_MAX) {
         prepare_fail_message(svc, p, "path too long");
         return 0;
     }
@@ -669,7 +669,7 @@ static int state_wait_cmd(afs_service_t *svc, apacket *p)
         return -1;
     }
 
-    if (msg->req.namelen >= CONFIG_PATH_MAX) {
+    if (msg->req.namelen >= PATH_MAX) {
         adb_log("Fail path too big (%d)\n", msg->req.namelen);
         return -1;
     }
