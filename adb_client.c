@@ -404,10 +404,10 @@ void adb_service_close(adb_client_t *client, adb_service_t *svc, apacket *p) {
     return;
 
 exit_free_service:
-	if (p) {
-		send_close_frame(client, p, svc->id, svc->peer_id);
-	}
-    svc->ops->close(svc);
+    if (p) {
+        send_close_frame(client, p, svc->id, svc->peer_id);
+    }
+    svc->ops->on_close(svc);
 }
 
 static adb_service_t* adb_client_find_service(adb_client_t *client, int id, int peer_id) {
