@@ -45,10 +45,6 @@
 #define fatal(...) assert(0)
 #endif
 
-/* Only one abstraction layer implementation for now */
-
-#include "hal/hal_uv.h"
-
 /* Logging methods */
 
 void adb_log_impl(const char *func, int line, const char *fmt, ...);
@@ -149,7 +145,6 @@ typedef struct adb_client_s {
     int next_service_id;
     adb_service_t *services;
     adb_service_t *r_services;
-    // adb_tcp_socket_t *sockets;
     uint8_t is_connected;
 #ifdef CONFIG_ADBD_AUTHENTICATION
     uint8_t token[CONFIG_ADBD_TOKEN_SIZE];
