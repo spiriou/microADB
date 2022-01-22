@@ -34,8 +34,8 @@ void adb_hal_apacket_release(adb_client_t *c, apacket *p) {
     assert(client->frame_count > 0);
 
     if (client->frame_count > CONFIG_ADBD_FRAME_MAX) {
-    	client->frame_count = CONFIG_ADBD_FRAME_MAX-1;
-    	c->ops->kick(c);
+        client->frame_count = CONFIG_ADBD_FRAME_MAX-1;
+        c->ops->kick(c);
     }
     else {
         client->frame_count -= 1;
@@ -50,7 +50,7 @@ apacket_uv_t* adb_uv_packet_allocate(adb_client_uv_t *client, int is_connect)
 
     /* Limit frame allocation */
     if (client->frame_count >= CONFIG_ADBD_FRAME_MAX) {
-    	client->frame_count = CONFIG_ADBD_FRAME_MAX + 1;
+        client->frame_count = CONFIG_ADBD_FRAME_MAX + 1;
         return NULL;
     }
 
