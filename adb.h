@@ -116,11 +116,6 @@ typedef struct adb_service_ops_s {
     void (*on_close)(struct adb_service_s *service);
 } adb_service_ops_t;
 
-typedef struct adb_reverse_service_ops_s {
-    adb_service_ops_t svc_ops;
-    uint16_t (*get_port)(struct adb_service_s*, uint8_t is_local);
-} adb_reverse_service_ops_t;
-
 typedef struct adb_service_s {
     /* chain pointers for the local/remote list of
     ** asockets that this asocket lives in
@@ -143,7 +138,6 @@ typedef struct adb_client_s {
     const adb_client_ops_t *ops;
     int next_service_id;
     adb_service_t *services;
-    adb_service_t *r_services;
     uint8_t is_connected;
 #ifdef CONFIG_ADBD_AUTHENTICATION
     uint8_t token[CONFIG_ADBD_TOKEN_SIZE];
