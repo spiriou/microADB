@@ -332,50 +332,47 @@ static adb_service_t *adb_service_open(adb_client_t *client, const char *name, a
         fatal("service_id overflow");
     }
 
+    do {
 #ifdef CONFIG_ADBD_FILE_SERVICE
-    if(!strncmp(name, "sync:", 5)) {
-        svc = file_sync_service(name);
-    }
+        if(!strncmp(name, "sync:", 5)) {
+            svc = file_sync_service(name);
+            break;
+        }
 #endif
 
 #if defined(CONFIG_ADBD_SHELL_SERVICE) || defined(CONFIG_ADBD_LOGCAT_SERVICE)
-    else if (!strncmp(name, "shell", 5)) {
+        if (!strncmp(name, "shell", 5)) {
 #ifdef CONFIG_ADBD_LOGCAT_SERVICE
-        /* Search for logcat */
-        char *ptr = strstr(name, "exec logcat");
-        if (ptr) {
-            svc = logcat_service(client, name);
-            goto service_created;
-        }
+            /* Search for logcat */
+            char *ptr = strstr(name, "exec logcat");
+            if (ptr) {
+                svc = logcat_service(client, name);
+                break;
+            }
 #endif /* CONFIG_ADBD_LOGCAT_SERVICE */
 #ifdef CONFIG_ADBD_SHELL_SERVICE
-        svc = shell_service(client, name);
-        goto service_created;
+            svc = shell_service(client, name);
+            break;
 #endif /* CONFIG_ADBD_SHELL_SERVICE */
-    }
+        }
 #endif
 
-    else if (!strncmp(name, "reboot:", 7)) {
-        adb_reboot_impl(&name[7]);
+        if (!strncmp(name, "reboot:", 7)) {
+            adb_reboot_impl(&name[7]);
 
-        /* One shot service, skip service register */
-        return NULL;
-    }
+            /* One shot service, skip service register */
+            return NULL;
+        }
+    } while (0);
 
-#if defined(CONFIG_ADBD_SHELL_SERVICE) || defined(CONFIG_ADBD_LOGCAT_SERVICE)
-service_created:
-#endif
     if (svc == NULL) {
-        goto exit_error;
+        adb_log("fail to init service %s\n", name);
+        return NULL;
     }
 
     svc->peer_id = p->msg.arg0;
     adb_register_service(svc, client);
     return svc;
-
-exit_error:
-    adb_log("fail to init service %s\n", name);
-    return NULL;
 }
 
 void adb_service_close(adb_client_t *client, adb_service_t *svc, apacket *p) {
