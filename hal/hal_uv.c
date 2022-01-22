@@ -32,32 +32,21 @@ static adb_context_uv_t g_adbd_context;
 adb_context_t* adb_hal_create_context() {
     adb_context_uv_t *adbd = &g_adbd_context;
 
-#ifdef __NUTTX__
-    uv_library_init(&adbd->uv_context);
-    adbd->loop = uv_default_loop(&adbd->uv_context);
-#else
     adbd->loop = uv_default_loop();
-#endif
 
 #ifdef CONFIG_ADBD_TCP_SERVER
     if (adb_uv_tcp_setup(adbd)) {
-        goto exit_fail;
+        return NULL;
     }
 #endif
 
 #ifdef CONFIG_ADBD_USB_SERVER
     if (adb_uv_usb_setup(adbd, "/dev/adb0")) {
-        goto exit_fail;
+        return NULL;
     }
 #endif
 
     return &adbd->context;
-
-exit_fail:
-#ifdef __NUTTX__
-    uv_library_shutdown(&adbd->uv_context);
-#endif
-    return NULL;
 }
 
 void adb_hal_destroy_context(adb_context_t *context) {
