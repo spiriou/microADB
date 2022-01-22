@@ -142,9 +142,6 @@ static void tcp_on_connection(uv_stream_t* server, int status) {
         tcp_uv_on_data_available);
     /* TODO check return code */
     assert(ret == 0);
-
-    /* Insert client in context */
-    adb_register_client(&client->uc.client, &adbd->context);
 }
 
 /****************************************************************************

@@ -38,7 +38,6 @@ adb_context_t* adb_hal_create_context() {
 #else
     adbd->loop = uv_default_loop();
 #endif
-    adbd->context.clients = NULL;
 
 #ifdef CONFIG_ADBD_TCP_SERVER
     if (adb_uv_tcp_setup(adbd)) {

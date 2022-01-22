@@ -444,11 +444,6 @@ adb_client_t *adb_create_client(size_t size) {
     return client;
 }
 
-void adb_register_client(adb_client_t *client, adb_context_t *context) {
-    client->next = context->clients;
-    context->clients = client;
-}
-
 void adb_destroy_client(adb_client_t *client) {
     adb_service_t *service = client->services;
     while (service != NULL) {

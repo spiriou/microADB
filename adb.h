@@ -140,7 +140,6 @@ typedef struct adb_client_ops_s {
 } adb_client_ops_t;
 
 typedef struct adb_client_s {
-    struct adb_client_s *next;
     const adb_client_ops_t *ops;
     int next_service_id;
     adb_service_t *services;
@@ -152,7 +151,6 @@ typedef struct adb_client_s {
 } adb_client_t;
 
 typedef struct adb_context_s {
-    adb_client_t *clients;
 } adb_context_t;
 
 /****************************************************************************
@@ -171,7 +169,6 @@ int adb_hal_random(void *buf, size_t len);
 /* Client */
 
 adb_client_t* adb_create_client(size_t size);
-void adb_register_client(adb_client_t *client, adb_context_t *context);
 void adb_destroy_client(adb_client_t *client);
 void adb_client_kick_services(adb_client_t *client);
 
