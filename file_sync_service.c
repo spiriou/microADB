@@ -88,19 +88,12 @@ union syncmsg {
 enum {
     AFS_STATE_WAIT_CMD,
     AFS_STATE_WAIT_CMD_DATA,
-    AFS_STATE_PROCESS_STAT,
     AFS_STATE_PROCESS_RECV,
     AFS_STATE_PROCESS_LIST,
     AFS_STATE_PROCESS_SEND_FILE_HDR,
     AFS_STATE_PROCESS_SEND_FILE_DATA,
     AFS_STATE_PROCESS_SEND_SYM_HDR,
     AFS_STATE_PROCESS_SEND_SYM_DATA
-};
-
-enum {
-    AFS_OK = 0,
-    AFS_RESET_STATE = -1,
-    AFS_ERROR = -2
 };
 
 typedef struct afs_service_s {
@@ -443,7 +436,7 @@ static int state_init_send(afs_service_t *svc, apacket *p)
     if(tmp) {
         *tmp = 0;
         mode = strtoul(tmp + 1, NULL, 0);
-        is_link = S_ISLNK((mode_t) mode);
+        is_link = S_ISLNK((mode_t)mode);
         mode &= 0777;
     }
     else {
@@ -808,7 +801,6 @@ static int file_sync_on_ack(adb_service_t *service, apacket *p) {
             ret = state_process_list(svc, p);
             break;
 
-        case AFS_STATE_PROCESS_STAT:
         case AFS_STATE_PROCESS_SEND_FILE_HDR:
         case AFS_STATE_PROCESS_SEND_SYM_HDR:
         case AFS_STATE_WAIT_CMD:
