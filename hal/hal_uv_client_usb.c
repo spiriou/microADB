@@ -35,7 +35,6 @@ typedef struct adb_client_usb_s {
 
 static void usb_uv_allocate_frame(uv_handle_t* handle,
                        size_t suggested_size, uv_buf_t* buf) {
-    UNUSED(handle);
     UNUSED(suggested_size);
 
     adb_client_usb_t *client = container_of(handle, adb_client_usb_t, pipe);
@@ -44,11 +43,9 @@ static void usb_uv_allocate_frame(uv_handle_t* handle,
 
 static void usb_uv_on_data_available(uv_stream_t* handle, 
         ssize_t nread, const uv_buf_t* buf) {
-    UNUSED(buf);
-
     adb_client_usb_t *client = container_of(handle, adb_client_usb_t, pipe);
 
-    adb_uv_on_data_available(&client->uc, (uv_stream_t*)handle, nread, buf);
+    adb_uv_on_data_available(&client->uc, handle, nread, buf);
 }
 
 static int usb_uv_write(adb_client_t *c, apacket *p) {

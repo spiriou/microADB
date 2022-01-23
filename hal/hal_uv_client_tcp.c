@@ -37,7 +37,6 @@ typedef struct adb_client_tcp_s {
 
 static void tcp_uv_allocate_frame(uv_handle_t* handle,
                        size_t suggested_size, uv_buf_t* buf) {
-    UNUSED(handle);
     UNUSED(suggested_size);
 
     adb_client_tcp_t *client = container_of(handle, adb_client_tcp_t, socket);
@@ -46,11 +45,9 @@ static void tcp_uv_allocate_frame(uv_handle_t* handle,
 
 static void tcp_uv_on_data_available(uv_stream_t* handle,
         ssize_t nread, const uv_buf_t* buf) {
-    UNUSED(buf);
-
     adb_client_tcp_t *client = container_of(handle, adb_client_tcp_t, socket);
 
-    adb_uv_on_data_available(&client->uc, (uv_stream_t*)handle, nread, buf);
+    adb_uv_on_data_available(&client->uc, handle, nread, buf);
 }
 
 static int tcp_uv_write(adb_client_t *c, apacket *p) {

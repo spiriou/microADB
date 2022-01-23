@@ -23,14 +23,14 @@
 #include "hal_uv_priv.h"
 #include <uv.h>
 
-static adb_context_uv_t g_adb_context;
+static adb_context_uv_t g_adbd_context;
 
 /****************************************************************************
  * HAL Public Functions
  ****************************************************************************/
 
 adb_context_t* adb_hal_create_context() {
-    adb_context_uv_t *adbd = &g_adb_context;
+    adb_context_uv_t *adbd = &g_adbd_context;
 
 #ifdef __NUTTX__
     uv_library_init(&adbd->uv_context);
