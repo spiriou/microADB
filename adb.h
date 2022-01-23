@@ -113,7 +113,7 @@ typedef struct adb_service_ops_s {
     int (*on_write_frame)(struct adb_service_s *service, apacket *p);
     int (*on_ack_frame)(struct adb_service_s *service, apacket *p);
     void (*on_kick)(struct adb_service_s *service);
-    void (*close)(struct adb_service_s *service);
+    void (*on_close)(struct adb_service_s *service);
 } adb_service_ops_t;
 
 typedef struct adb_reverse_service_ops_s {

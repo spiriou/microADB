@@ -180,7 +180,7 @@ static void state_reset(afs_service_t *svc);
 
 static int file_sync_on_ack(adb_service_t *service, apacket *p);
 static int file_sync_on_write(adb_service_t *service, apacket *p);
-static void file_sync_close(struct adb_service_s *service);
+static void file_sync_on_close(struct adb_service_s *service);
 
 /****************************************************************************
  * Private Functions
@@ -832,7 +832,7 @@ static int file_sync_on_ack(adb_service_t *service, apacket *p) {
     return ret;
 }
 
-static void file_sync_close(struct adb_service_s *service) {
+static void file_sync_on_close(struct adb_service_s *service) {
     afs_service_t *svc = container_of(service, afs_service_t, service);
     state_reset(svc);
     free(svc);
@@ -842,7 +842,7 @@ static const adb_service_ops_t file_sync_ops = {
     .on_write_frame = file_sync_on_write,
     .on_ack_frame   = file_sync_on_ack,
     .on_kick        = NULL,
-    .close          = file_sync_close
+    .on_close       = file_sync_on_close
 };
 
 /****************************************************************************

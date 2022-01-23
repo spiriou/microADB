@@ -224,7 +224,7 @@ static const adb_service_ops_t shell_ops = {
   .on_write_frame = shell_write,
   .on_ack_frame   = shell_ack,
   .on_kick        = shell_kick,
-  .close          = shell_close
+  .on_close       = shell_close
 };
 
 /****************************************************************************
