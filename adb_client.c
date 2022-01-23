@@ -115,14 +115,14 @@ static void send_auth_request(adb_client_t *client, apacket *p)
     if (ret < 0) {
         adb_log("Failed to generate auth token %d %d\n", ret, errno);
         adb_hal_apacket_release(client, p);
-        adb_destroy_client(client);
+        client->ops->close(client);
         return;
     }
 
     memcpy(p->data, client->token, sizeof(client->token));
     p->msg.command = A_AUTH;
-    p->msg.arg1 = p->msg.arg0;
     p->msg.arg0 = ADB_AUTH_TOKEN;
+    p->msg.arg1 = 0;
     p->msg.data_length = sizeof(client->token);
     send_frame(client, p);
 }
@@ -234,10 +234,7 @@ static void handle_okay_frame(adb_client_t *client, apacket *p) {
 
 #ifdef CONFIG_ADBD_AUTHENTICATION
 static void handle_auth_frame(adb_client_t *client, apacket *p) {
-    /* READY(local-id, remote-id, "") */
-    UNUSED(client);
-    UNUSED(p);
-
+    /* AUTH(type, 0, "data") */
     switch (p->msg.arg0) {
         case ADB_AUTH_TOKEN:
             adb_hal_apacket_release(client, p);
