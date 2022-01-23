@@ -44,7 +44,7 @@ void adb_hal_apacket_release(adb_client_t *c, apacket *p) {
     free(up);
 }
 
-apacket_uv_t* adb_uv_packet_allocate(adb_client_uv_t *client, int is_connect)
+apacket_uv_t* adb_uv_packet_allocate(adb_client_uv_t *client, int before_connect)
 {
     apacket_uv_t* p;
 
@@ -54,7 +54,7 @@ apacket_uv_t* adb_uv_packet_allocate(adb_client_uv_t *client, int is_connect)
         return NULL;
     }
 
-    if (is_connect) {
+    if (before_connect) {
         p = (apacket_uv_t*)malloc(sizeof(apacket_uv_t)+
             CONFIG_ADBD_CNXN_PAYLOAD_SIZE-CONFIG_ADBD_PAYLOAD_SIZE);
     }

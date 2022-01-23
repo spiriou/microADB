@@ -70,7 +70,7 @@ int adb_uv_usb_setup(adb_context_uv_t *adbd, const char *path);
 /* hal packet management */
 
 apacket_uv_t* adb_uv_packet_allocate(adb_client_uv_t *client,
-                                     int is_connect);
+                                     int before_connect);
 void adb_uv_packet_release(adb_client_uv_t *c, apacket_uv_t *p);
 
 void adb_uv_allocate_frame(adb_client_uv_t *client, uv_buf_t* buf);
