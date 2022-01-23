@@ -171,7 +171,6 @@ int adb_hal_random(void *buf, size_t len);
 /* Client */
 
 adb_client_t* adb_create_client(size_t size);
-void adb_init_client(adb_client_t *client);
 void adb_register_client(adb_client_t *client, adb_context_t *context);
 void adb_destroy_client(adb_client_t *client);
 void adb_client_kick_services(adb_client_t *client);
@@ -197,8 +196,6 @@ void adb_hal_apacket_release(adb_client_t *client, apacket *p);
 /* Services */
 
 void adb_register_service(adb_service_t *svc, adb_client_t *client);
-void adb_service_on_async_process_complete(adb_client_t *client,
-    adb_service_t *service, apacket *p);
 void adb_service_close(adb_client_t *client, adb_service_t *svc, apacket *p);
 
 #ifdef CONFIG_ADBD_AUTHENTICATION

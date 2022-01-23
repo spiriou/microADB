@@ -431,7 +431,7 @@ void adb_client_kick_services(adb_client_t *client) {
     }
 }
 
-void adb_init_client(adb_client_t *client) {
+static void adb_init_client(adb_client_t *client) {
     /* setup adb_client */
     client->next_service_id = 1;
     client->services = NULL;
