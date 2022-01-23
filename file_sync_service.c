@@ -517,7 +517,7 @@ static int state_process_send_header(afs_service_t *svc, apacket *p)
     if(msg->data.id != ID_DATA) {
         if(msg->data.id == ID_DONE) {
             prepare_okay_message(svc, p);
-            return 1;
+            return 0;
         }
         adb_log("Data message is 0x%x\n", msg->data.id);
         prepare_fail_message(svc, p, "invalid data message");
