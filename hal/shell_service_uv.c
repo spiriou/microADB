@@ -116,6 +116,7 @@ static void pipe_on_data_available(uv_stream_t* stream, ssize_t nread,
         const uv_buf_t* buf) {
     ash_service_t *service = container_of(stream, ash_service_t, shell_pipe);
     adb_client_uv_t *client = (adb_client_uv_t *)service->shell_pipe.data;
+    apacket *p;
 
     if (nread == UV_ENOBUFS) {
         /* No frame available, stop read events for now */
@@ -123,7 +124,6 @@ static void pipe_on_data_available(uv_stream_t* stream, ssize_t nread,
         return;
     }
 
-    apacket *p;
     p = container_of(buf->base, apacket, data);
 
     if (nread <= 0) {
@@ -207,7 +207,7 @@ static void shell_close_process_callback(uv_handle_t *handle) {
 
 static void shell_close_pipe_callback(uv_handle_t *handle) {
     ash_service_t *svc = container_of(handle, ash_service_t, shell_pipe);
-    uv_close((uv_handle_t*) &svc->process, shell_close_process_callback);
+    uv_close((uv_handle_t *)&svc->process, shell_close_process_callback);
 }
 
 static void shell_close(adb_service_t *service) {
@@ -231,7 +231,7 @@ static const adb_service_ops_t shell_ops = {
  * Public Functions
  ****************************************************************************/
 
-adb_service_t * shell_service(adb_client_t *client, const char *params) {
+adb_service_t *shell_service(adb_client_t *client, const char *params) {
     int ret;
     char **argv;
     const char *target_cmd;
@@ -278,8 +278,8 @@ adb_service_t * shell_service(adb_client_t *client, const char *params) {
         }
 
         argv[0] = (char *)&argv[4];
-        argv[1] = &((char *)&argv[4])[3];
-        argv[2] = &((char *)&argv[4])[6];
+        argv[1] = argv[0] + sizeof(CONFIG_ADBD_SHELL_SERVICE_CMD);
+        argv[2] = argv[1] + 3;
         argv[3] = NULL;
         strcpy(argv[1], "-c");
         strcpy(argv[2], target_cmd);
