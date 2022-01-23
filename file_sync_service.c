@@ -534,45 +534,37 @@ static int state_process_send_header(afs_service_t *svc, apacket *p)
 static int state_process_send_file(afs_service_t *svc, apacket *p)
 {
     int ret;
+    int block_size = min(p->msg.data_length, svc->namelen);
+    uint8_t *write_ptr = svc->packet_ptr;
 
-    while (svc->namelen > 0) {
-        int block_size = min(SYNC_TEMP_BUFF_SIZE, svc->namelen);
+    svc->namelen -= block_size;
+    p->msg.data_length -= block_size;
+    svc->packet_ptr += block_size;
 
-        ret = read_from_packet(svc, p, block_size);
-        if (ret != 0) {
-            if (ret == -EAGAIN) {
-                return 1;
+    if (svc->send_file.fd >= 0) {
+
+        /* Write data to file */
+        while (block_size > 0) {
+            ret = write(svc->send_file.fd, write_ptr, block_size);
+            if (ret > 0) {
+                write_ptr += ret;
+                block_size -= ret;
+                continue;
             }
-            prepare_fail_message(svc, p, "read error");
+            if (ret < 0 && errno == EINTR) {
+                continue;
+            }
+            /* TODO handle nonblocking io */
+            adb_log("write error %d %d\n", ret, errno);
+            prepare_fail_message(svc, p, "write error");
             return 0;
-        }
-
-        svc->namelen -= block_size;
-
-        if (svc->send_file.fd >= 0) {
-
-            /* Write data to file */
-            char *write_ptr = svc->buff;
-            while (block_size > 0) {
-                ret = write(svc->send_file.fd, write_ptr, block_size);
-                if (ret > 0) {
-                    write_ptr += ret;
-                    block_size -= ret;
-                    continue;
-                }
-                if (ret < 0 && errno == EINTR) {
-                    continue;
-                }
-                /* TODO handle nonblocking io */
-                adb_log("write error %d %d\n", ret, errno);
-                prepare_fail_message(svc, p, "write error");
-                return 0;
-            }
         }
     }
 
     /* Wait for DONE frame */
-    svc->state -= 1;
+    if (svc->namelen == 0)
+        svc->state -= 1;
+
     return 1;
 }
 
