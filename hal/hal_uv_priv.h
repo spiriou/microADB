@@ -78,12 +78,12 @@ void adb_uv_allocate_frame(adb_client_uv_t *client, uv_buf_t* buf);
 /* hal stream helpers */
 
 void adb_uv_after_write(uv_write_t* req, int status);
-adb_client_t* adb_uv_create_client(size_t size);
 void adb_uv_on_data_available(adb_client_uv_t *client, uv_stream_t *stream,
         ssize_t nread, const uv_buf_t* buf);
 
 /* hal client management */
 
+adb_client_uv_t* adb_uv_create_client(size_t size);
 void adb_uv_close_client(adb_client_uv_t *client);
 
 #endif /* __ADB_HAL_UV_PRIV_H__ */

@@ -94,7 +94,7 @@ int adb_hal_random(void *buf, size_t len) {
  * Hal internal functions
  ****************************************************************************/
 
-adb_client_t* adb_uv_create_client(size_t size) {
+adb_client_uv_t* adb_uv_create_client(size_t size) {
     adb_client_uv_t *client;
     client = (adb_client_uv_t*)adb_create_client(size);
     if (client == NULL) {
@@ -103,7 +103,7 @@ adb_client_t* adb_uv_create_client(size_t size) {
 
     client->cur_packet = NULL;
     client->frame_count = 0;
-    return &client->client;
+    return client;
 }
 
 void adb_uv_close_client(adb_client_uv_t *client) {
