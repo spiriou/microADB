@@ -83,7 +83,7 @@ static void send_frame(adb_client_t *client, apacket *p)
 }
 
 static void send_close_frame(adb_client_t *client, apacket *p,
-	unsigned local, unsigned remote)
+    unsigned local, unsigned remote)
 {
     p->msg.command = A_CLSE;
     p->msg.arg0 = local;
@@ -113,16 +113,16 @@ static void send_auth_request(adb_client_t *client, apacket *p)
     ret = adb_hal_random(client->token, sizeof(client->token));
 
     if (ret < 0) {
-    	adb_log("Failed to generate auth token %d %d\n", ret, errno);
-    	adb_hal_apacket_release(client, p);
-    	adb_destroy_client(client);
-    	return;
+        adb_log("Failed to generate auth token %d %d\n", ret, errno);
+        adb_hal_apacket_release(client, p);
+        client->ops->close(client);
+        return;
     }
 
     memcpy(p->data, client->token, sizeof(client->token));
     p->msg.command = A_AUTH;
-    p->msg.arg1 = p->msg.arg0;
     p->msg.arg0 = ADB_AUTH_TOKEN;
+    p->msg.arg1 = 0;
     p->msg.data_length = sizeof(client->token);
     send_frame(client, p);
 }
@@ -134,7 +134,7 @@ static void handle_open_frame(adb_client_t *client, apacket *p) {
 
     /* OPEN(local-id, 0, "destination") */
     if (p->msg.arg0 == 0 || p->msg.arg1 != 0) {
-    	return;
+        return;
     }
 
     name[p->msg.data_length > 0 ? p->msg.data_length - 1 : 0] = 0;
@@ -168,14 +168,14 @@ static void handle_close_frame(adb_client_t *client, apacket *p) {
 }
 
 static void handle_write_frame(adb_client_t *client, apacket *p) {
-	/* WRITE(local-id, remote-id, <data>) */
-	int ret;
+    /* WRITE(local-id, remote-id, <data>) */
+    int ret;
     adb_service_t *svc;
     svc = adb_client_find_service(client, p->msg.arg1, p->msg.arg0);
     if (svc == NULL) {
-	    /* Ensure service is closed on peer side */
-	    send_close_frame(client, p, p->msg.arg1, p->msg.arg0);
-	    return;
+        /* Ensure service is closed on peer side */
+        send_close_frame(client, p, p->msg.arg1, p->msg.arg0);
+        return;
     }
 
     ret = svc->ops->on_write_frame(svc, p);
@@ -186,9 +186,9 @@ static void handle_write_frame(adb_client_t *client, apacket *p) {
     }
 
     if (ret == 0) {
-    	/* Write frame processing done, send acknowledge frame */
-    	adb_send_okay_frame(client, p, svc->id, svc->peer_id);
-    	return;
+        /* Write frame processing done, send acknowledge frame */
+        adb_send_okay_frame(client, p, svc->id, svc->peer_id);
+        return;
     }
 
     /* Service process frame asynchronously, do nothing */
@@ -201,25 +201,25 @@ static void handle_okay_frame(adb_client_t *client, apacket *p) {
     svc = adb_client_find_service(client, p->msg.arg1, 0);
     if (!svc) {
         send_close_frame(client, p, p->msg.arg1, p->msg.arg0);
-    	return;
+        return;
     }
 
     if (svc->peer_id == 0) {
-    	/* Update peer id */
-    	svc->peer_id = p->msg.arg0;
+        /* Update peer id */
+        svc->peer_id = p->msg.arg0;
     }
 
     ret = svc->ops->on_ack_frame(svc, p);
     if (ret < 0) {
-	    /* An error occured, stop service */
-	    adb_service_close(client, svc, p);
-	    return;
-	}
+        /* An error occured, stop service */
+        adb_service_close(client, svc, p);
+        return;
+    }
 
-	if (ret > 0) {
-		/* Service process frame asynchronously, do nothing */
-		return;
-	}
+    if (ret > 0) {
+        /* Service process frame asynchronously, do nothing */
+        return;
+    }
 
     if (p->write_len > 0) {
         /* Write payload from service */
@@ -229,63 +229,60 @@ static void handle_okay_frame(adb_client_t *client, apacket *p) {
         return;
     }
 
-	adb_hal_apacket_release(client, p);  
+    adb_hal_apacket_release(client, p);
 }
 
 #ifdef CONFIG_ADBD_AUTHENTICATION
 static void handle_auth_frame(adb_client_t *client, apacket *p) {
-    /* READY(local-id, remote-id, "") */
-    UNUSED(client);
-    UNUSED(p);
-
+    /* AUTH(type, 0, "data") */
     switch (p->msg.arg0) {
         case ADB_AUTH_TOKEN:
-        	adb_hal_apacket_release(client, p);
-        	break;
+            adb_hal_apacket_release(client, p);
+            break;
 
         case ADB_AUTH_SIGNATURE:
             /* Check all public keys */
-        	for (int i=0; g_adb_public_keys[i]; i++) {
+            for (int i=0; g_adb_public_keys[i]; i++) {
 
                 /* FIXME RSA primitives not integrated yet */
 
                 adb_log("skip key verification\n");
 #if 0
-	        	if (RSA_verify((RSAPublicKey*)g_adb_public_keys[i],
-	        		p->data,
-	        		p->msg.data_length,
-	        		client->token, SHA_DIGEST_SIZE))
+                if (RSA_verify((RSAPublicKey*)g_adb_public_keys[i],
+                    p->data,
+                    p->msg.data_length,
+                    client->token, SHA_DIGEST_SIZE))
                 {
-	        		/* Key verification successful */
-	            	goto exit_connected;
-	            }
+                    /* Key verification successful */
+                    goto exit_connected;
+                }
 #endif
-	        }
+            }
 
             /* Key verification failed.
              * TODO add retry counter and timer/delay
              */
 
             send_auth_request(client, p);
-        	break;
+            break;
 
 #ifdef CONFIG_ADBD_AUTH_PUBKEY
         case ADB_AUTH_RSAPUBLICKEY:
-        	adb_log("accept key from%s\n", strstr((char*)p->data, " "));
-        	/* FIXME always accept all new public keys for now */
-        	goto exit_connected;
+            adb_log("accept key from%s\n", strstr((char*)p->data, " "));
+            /* FIXME always accept all new public keys for now */
+            goto exit_connected;
 #endif
 
         default:
-        	adb_log("invalid id %d\n", p->msg.arg0);
-        	adb_hal_apacket_release(client, p);
+            adb_log("invalid id %d\n", p->msg.arg0);
+            adb_hal_apacket_release(client, p);
     }
 
     return;
 
 exit_connected:
-	send_cnxn_frame(client, p);
-	client->is_connected = 1;
+    send_cnxn_frame(client, p);
+    client->is_connected = 1;
 }
 #endif
 
@@ -335,8 +332,8 @@ static adb_service_t *adb_service_open(adb_client_t *client, const char *name, a
     UNUSED(p);
 
     if (client->next_service_id == 0) {
-    	/* service id overflow, exit */
-    	fatal("service_id overflow");
+        /* service id overflow, exit */
+        fatal("service_id overflow");
     }
 
 #ifdef CONFIG_ADBD_FILE_SERVICE
@@ -373,7 +370,7 @@ static adb_service_t *adb_service_open(adb_client_t *client, const char *name, a
 service_created:
 #endif
     if (svc == NULL) {
-    	goto exit_error;
+        goto exit_error;
     }
 
     svc->peer_id = p->msg.arg0;
@@ -428,7 +425,7 @@ void adb_client_kick_services(adb_client_t *client) {
     adb_service_t *service = client->services;
     while (service != NULL) {
         if (service->ops->on_kick) {
-        	service->ops->on_kick(service);
+            service->ops->on_kick(service);
         }
         service = service->next;
     }
@@ -464,25 +461,25 @@ void adb_destroy_client(adb_client_t *client) {
         adb_service_close(client, service, NULL);
         service = service->next;
     }
-	adb_hal_destroy_client(client);
+    adb_hal_destroy_client(client);
 }
 
 void adb_process_packet(adb_client_t *client, apacket *p)
 {
     p->write_len = 0;
 
-	if (p->msg.command == A_CNXN) {
-		/* CONNECT(version, maxdata, "system-id-string") */
+    if (p->msg.command == A_CNXN) {
+        /* CONNECT(version, maxdata, "system-id-string") */
 #ifdef CONFIG_ADBD_AUTHENTICATION
         if (!client->is_connected) {
             send_auth_request(client, p);
             return;
         }
 #endif /* CONFIG_ADBD_AUTHENTICATION */
-    	send_cnxn_frame(client, p);
-    	client->is_connected = 1;
-    	return;
-	}
+        send_cnxn_frame(client, p);
+        client->is_connected = 1;
+        return;
+    }
 
 #ifdef CONFIG_ADBD_AUTHENTICATION
     if (p->msg.command == A_AUTH) {
@@ -497,7 +494,7 @@ void adb_process_packet(adb_client_t *client, apacket *p)
 
     /* Client is connected */
 
-    switch(p->msg.command){
+    switch(p->msg.command) {
     case A_OPEN:
         handle_open_frame(client, p);
         return;
@@ -511,11 +508,11 @@ void adb_process_packet(adb_client_t *client, apacket *p)
         return;
 
     case A_OKAY:
-    	handle_okay_frame(client, p);
+        handle_okay_frame(client, p);
         return;
 
     default:
-    	break;
+        break;
     }
 
 #ifdef CONFIG_ADBD_AUTHENTICATION
