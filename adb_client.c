@@ -134,6 +134,7 @@ static void handle_open_frame(adb_client_t *client, apacket *p) {
 
     /* OPEN(local-id, 0, "destination") */
     if (p->msg.arg0 == 0 || p->msg.arg1 != 0) {
+        adb_hal_apacket_release(client, p);
         return;
     }
 
