@@ -41,7 +41,7 @@ static void usb_uv_allocate_frame(uv_handle_t* handle,
     adb_uv_allocate_frame(&client->uc, buf);
 }
 
-static void usb_uv_on_data_available(uv_stream_t* handle, 
+static void usb_uv_on_data_available(uv_stream_t* handle,
         ssize_t nread, const uv_buf_t* buf) {
     adb_client_usb_t *client = container_of(handle, adb_client_usb_t, pipe);
 
