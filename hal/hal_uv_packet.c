@@ -143,8 +143,7 @@ void adb_uv_on_data_available(adb_client_uv_t *client, uv_stream_t *stream,
     }
 
     if (nread == 0) {
-        /* No data available. This should not happen. FIXME */
-        adb_log("FIXME read returned no data.\n");
+        /* No data available. This should not happen. */
         if (client->cur_len <= 0) {
             /* Release memory waiting for next frame */
             adb_hal_apacket_release(&client->client, &client->cur_packet->p);
