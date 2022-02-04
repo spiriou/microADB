@@ -127,7 +127,9 @@ static void pipe_on_data_available(uv_stream_t* stream, ssize_t nread,
     p = container_of(buf->base, apacket, data);
 
     if (nread <= 0) {
-        adb_log("GOT EOF or ERROR nread %d\n", nread);
+        if (nread != UV_EOF) {
+            adb_log("GOT ERROR nread %d\n", nread);
+        }
         adb_service_close(&client->client, &service->service, p);
         return;
     }
