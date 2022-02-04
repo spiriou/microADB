@@ -152,8 +152,10 @@ void adb_uv_on_data_available(adb_client_uv_t *client, uv_stream_t *stream,
         }
         return;
     }
-    if (nread <= 0) {
-        adb_log("read failed %d\n", nread);
+    if (nread < 0) {
+        if (nread != UV_EOF) {
+            adb_log("read failed %d\n", nread);
+        }
         client->client.ops->close(&client->client);
         return;
     }
