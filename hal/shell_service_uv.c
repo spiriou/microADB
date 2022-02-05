@@ -15,12 +15,13 @@
  *
  */
 
-/* Force _XOPEN_SOURCE (required for pty features) */
-#define _XOPEN_SOURCE 600
+#define _DEFAULT_SOURCE 1 /* Force _DEFAULT_SOURCE (required for cfmakeraw) */
+#define _XOPEN_SOURCE 600 /* Force _XOPEN_SOURCE (required for pty features) */
 
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <termios.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -239,6 +240,7 @@ adb_service_t *shell_service(adb_client_t *client, const char *params) {
     const char *target_cmd;
     uv_process_options_t options;
     uv_stdio_container_t stdio[3];
+    struct termios slavetermios;
     char *slavedevice = NULL;
     int fds[2];
 
@@ -305,55 +307,49 @@ adb_service_t *shell_service(adb_client_t *client, const char *params) {
     strcpy(argv[0], CONFIG_ADBD_SHELL_SERVICE_CMD);
 
     /* Setup IPC to communicate with child shell process.
-     * It is based on either socketpair or pty according to shell arguments */
+     * Create interactive session based on pty */
 
-    if (target_cmd[0] != 0) {
-        /* This is not an interactive session. Open in RAW mode */
+#ifdef O_CLOEXEC
+    fds[0] = posix_openpt(O_RDWR | O_NOCTTY | O_CLOEXEC);
+#else
+    fds[0] = posix_openpt(O_RDWR | O_NOCTTY);
+#endif
 
-        ret = socketpair(PF_LOCAL, SOCK_STREAM | SOCK_CLOEXEC, 0, fds);
-
-        if (ret) {
-            goto exit_free_argv;
-        }
+    if (fds[0] < 0) {
+        goto exit_free_argv;
     }
-    else {
-        /* Create interactive session based on pty */
+
+    if ((ret = grantpt(fds[0]))) {
+        goto exit_release_pipe;
+    }
+    if ((ret = unlockpt(fds[0]))) {
+        goto exit_release_pipe;
+    }
+
+    slavedevice = ptsname(fds[0]);
 
 #ifdef O_CLOEXEC
-        fds[0] = posix_openpt(O_RDWR | O_NOCTTY | O_CLOEXEC);
+    fds[1] = open(slavedevice, O_RDWR | O_NOCTTY | O_CLOEXEC);
 #else
-        fds[0] = posix_openpt(O_RDWR | O_NOCTTY);
+    fds[1] = open(slavedevice, O_RDWR | O_NOCTTY);
 #endif
-
-        if (fds[0] < 0) {
-            goto exit_free_argv;
-        }
-
-        if ((ret = grantpt(fds[0]))) {
-            goto exit_release_pipe;
-        }
-        if ((ret = unlockpt(fds[0]))) {
-            goto exit_release_pipe;
-        }
-
-        slavedevice = ptsname(fds[0]);
-
-#ifdef O_CLOEXEC
-        fds[1] = open(slavedevice, O_RDWR | O_NOCTTY | O_CLOEXEC);
-#else
-        fds[1] = open(slavedevice, O_RDWR | O_NOCTTY);
-#endif
-        if (fds[1] < 0) {
-            adb_log("slavefd failed (%d)\n", errno);
-            goto exit_release_pipe;
-        }
+    if (fds[1] < 0) {
+        adb_log("slavefd failed (%d)\n", errno);
+        goto exit_release_pipe;
+    }
 
 #ifndef O_CLOEXEC
-        if ((ret = shell_set_cloexec(fds[0])) ||
-            (ret = shell_set_cloexec(fds[1]))) {
-            goto exit_release_pipe;
-        }
+    if ((ret = shell_set_cloexec(fds[0])) ||
+        (ret = shell_set_cloexec(fds[1]))) {
+        goto exit_release_pipe;
+    }
 #endif
+
+    if (target_cmd[0] != 0) {
+        /* This is not an interactive session. Swith to RAW mode */
+
+        cfmakeraw(&slavetermios);
+        tcsetattr(fds[1], TCSADRAIN, &slavetermios);
     }
 
     /* Open pipe endpoint that is managed by adb daemon */
