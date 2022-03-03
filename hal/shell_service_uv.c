@@ -320,10 +320,10 @@ adb_service_t *shell_service(adb_client_t *client, const char *params) {
     }
 
     if ((ret = grantpt(fds[0]))) {
-        goto exit_cloase_fd0;
+        goto exit_close_fd0;
     }
     if ((ret = unlockpt(fds[0]))) {
-        goto exit_cloase_fd0;
+        goto exit_close_fd0;
     }
 
     slavedevice = ptsname(fds[0]);
@@ -335,13 +335,13 @@ adb_service_t *shell_service(adb_client_t *client, const char *params) {
 #endif
     if (fds[1] < 0) {
         adb_log("slavefd failed (%d)\n", errno);
-        goto exit_cloase_fd0;
+        goto exit_close_fd0;
     }
 
 #ifndef O_CLOEXEC
     if ((ret = shell_set_cloexec(fds[0])) ||
         (ret = shell_set_cloexec(fds[1]))) {
-        goto exit_cloase_fd1;
+        goto exit_close_fd1;
     }
 #endif
 
@@ -357,12 +357,12 @@ adb_service_t *shell_service(adb_client_t *client, const char *params) {
     ret = uv_pipe_init(adb_uv_get_client_handle(client)->loop,
                        &service->shell_pipe, 0);
     if (ret) {
-        goto exit_cloase_fd1;
+        goto exit_close_fd1;
     }
 
     ret = uv_pipe_open(&service->shell_pipe, fds[0]);
     if (ret) {
-        goto exit_cloase_fd1;
+        goto exit_close_fd1;
     }
 
     /* Spawn new uv_process_t to manage shell */
@@ -392,7 +392,7 @@ adb_service_t *shell_service(adb_client_t *client, const char *params) {
     ret = uv_spawn(service->shell_pipe.loop, &service->process, &options);
     if (ret) {
         adb_log("uv_spawn failed (%s)\n", uv_strerror(ret));
-        goto exit_cloase_fd1;
+        goto exit_close_fd1;
     }
 
     /* Close shell child process endpoint and free argv array
@@ -407,7 +407,7 @@ adb_service_t *shell_service(adb_client_t *client, const char *params) {
 
     return &service->service;
 
-exit_cloase_fd1:
+exit_close_fd1:
     close(fds[1]);
 exit_close_fd0:
     close(fds[0]);
