@@ -30,18 +30,21 @@ void adb_hal_apacket_release(adb_client_t *c, apacket *p) {
     apacket_uv_t *up = container_of(p, apacket_uv_t, p);
 
     /* Sanity check */
-
     assert(client->frame_count > 0);
+    free(up);
 
     if (client->frame_count > CONFIG_ADBD_FRAME_MAX) {
         client->frame_count = CONFIG_ADBD_FRAME_MAX-1;
+        /* kick may try to allocate packet again.
+         * frame_count is CONFIG_ADBD_FRAME_MAX after first successful
+         * allocation. In case another allocation fails, it will be
+         * equal to CONFIG_ADBD_FRAME_MAX + 1 again.
+         */
         c->ops->kick(c);
     }
     else {
         client->frame_count -= 1;
     }
-
-    free(up);
 }
 
 apacket_uv_t* adb_uv_packet_allocate(adb_client_uv_t *client, int before_connect)
@@ -50,6 +53,7 @@ apacket_uv_t* adb_uv_packet_allocate(adb_client_uv_t *client, int before_connect
 
     /* Limit frame allocation */
     if (client->frame_count >= CONFIG_ADBD_FRAME_MAX) {
+        /* Keep track that at least one allocation has failed */
         client->frame_count = CONFIG_ADBD_FRAME_MAX + 1;
         return NULL;
     }
