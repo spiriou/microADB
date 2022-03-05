@@ -142,8 +142,8 @@ static void handle_open_frame(adb_client_t *client, apacket *p) {
     svc = adb_service_open(client, name, p);
     if(svc == NULL) {
         if (p->write_len > 0) {
-            adb_send_okay_frame(client, p, client->next_service_id++,
-                                p->msg.arg0);
+            adb_send_okay_frame_with_data(client, p, client->next_service_id++,
+                                          p->msg.arg0);
         }
         else {
             send_close_frame(client, p, 0, p->msg.arg0);
@@ -154,7 +154,7 @@ static void handle_open_frame(adb_client_t *client, apacket *p) {
             adb_hal_apacket_release(client, p);
         }
         else {
-            adb_send_okay_frame(client, p, svc->id, svc->peer_id);
+            adb_send_okay_frame_with_data(client, p, svc->id, svc->peer_id);
         }
     }
 }
@@ -190,7 +190,7 @@ static void handle_write_frame(adb_client_t *client, apacket *p) {
 
     if (ret == 0) {
         /* Write frame processing done, send acknowledge frame */
-        adb_send_okay_frame(client, p, svc->id, svc->peer_id);
+        adb_send_okay_frame_with_data(client, p, svc->id, svc->peer_id);
         return;
     }
 
@@ -294,6 +294,13 @@ exit_connected:
  ****************************************************************************/
 
 void adb_send_okay_frame(adb_client_t *client, apacket *p,
+    unsigned local, unsigned remote)
+{
+    p->write_len = 0;
+    return adb_send_okay_frame_with_data(client, p, local, remote);
+}
+
+void adb_send_okay_frame_with_data(adb_client_t *client, apacket *p,
     unsigned local, unsigned remote)
 {
     p->msg.command = A_OKAY;
