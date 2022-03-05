@@ -94,6 +94,12 @@ typedef struct amessage_s {
     unsigned magic;         /* command ^ 0xffffffff             */
 } amessage;
 
+/* Service init can force packet write_len to APACKET_SERVICE_INIT_ASYNC to
+ * notify adb client that the service init is asynchronous. No OKAY frame is
+ * sent and apacket is released.
+ */
+#define APACKET_SERVICE_INIT_ASYNC ((uint32_t)(~0))
+
 typedef struct apacket_s
 {
     unsigned int write_len;

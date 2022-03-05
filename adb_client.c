@@ -141,15 +141,21 @@ static void handle_open_frame(adb_client_t *client, apacket *p) {
     name[p->msg.data_length > 0 ? p->msg.data_length - 1 : 0] = 0;
     svc = adb_service_open(client, name, p);
     if(svc == NULL) {
-        if (p->msg.arg1 != 0) {
-            /* One shot service returned data */
-            adb_send_okay_frame(client, p, p->msg.arg1, p->msg.arg0);
+        if (p->write_len > 0) {
+            adb_send_okay_frame(client, p, client->next_service_id++,
+                                p->msg.arg0);
         }
         else {
             send_close_frame(client, p, 0, p->msg.arg0);
         }
     } else {
-        adb_send_okay_frame(client, p, svc->id, svc->peer_id);
+        if (p->write_len == APACKET_SERVICE_INIT_ASYNC) {
+            /* Service init is asynchronous. Release apacket. */
+            adb_hal_apacket_release(client, p);
+        }
+        else {
+            adb_send_okay_frame(client, p, svc->id, svc->peer_id);
+        }
     }
 }
 
