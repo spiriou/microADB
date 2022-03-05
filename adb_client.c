@@ -27,6 +27,9 @@
 #ifdef CONFIG_ADBD_SHELL_SERVICE
 #include "shell_service.h"
 #endif
+#ifdef CONFIG_ADBD_SOCKET_SERVICE
+#include "tcp_service.h"
+#endif
 
 /****************************************************************************
  * Private Function Prototypes
@@ -142,6 +145,7 @@ static void handle_open_frame(adb_client_t *client, apacket *p) {
     svc = adb_service_open(client, name, p);
     if(svc == NULL) {
         if (p->write_len > 0) {
+            /* One shot service returned data */
             adb_send_okay_frame_with_data(client, p, client->next_service_id++,
                                           p->msg.arg0);
         }
@@ -350,6 +354,13 @@ static adb_service_t *adb_service_open(adb_client_t *client, const char *name, a
 #ifdef CONFIG_ADBD_FILE_SERVICE
         if(!strncmp(name, "sync:", 5)) {
             svc = file_sync_service(name);
+            break;
+        }
+#endif
+
+#ifdef CONFIG_ADBD_SOCKET_SERVICE
+        if (!strncmp(name, "tcp:", 4)) {
+            svc = tcp_forward_service(client, name, p);
             break;
         }
 #endif

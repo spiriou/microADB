@@ -11,6 +11,7 @@ find_package(uv REQUIRED)
 option(ADBD_AUTHENTICATION "adb authentication"    OFF)
 option(ADBD_AUTH_PUBKEY    "adb auth public key"   OFF)
 option(ADBD_FILE_SERVICE   "adb file sync service" ON)
+option(ADBD_SOCKET_SERVICE "adb socket service"    ON)
 
 option(ADBD_SHELL_SERVICE   "adb shell service" ON)
 set(ADBD_SHELL_SERVICE_PATH "/bin/bash" CACHE STRING "")
@@ -47,6 +48,10 @@ if(ADBD_FILE_SERVICE)
   set(ADB_SRCS ${ADB_SRCS} file_sync_service.c)
 endif()
 
+if(ADBD_SOCKET_SERVICE)
+  set(ADB_SRCS ${ADB_SRCS} tcp_service.c hal/hal_uv_socket.c)
+endif()
+
 if(ADBD_SHELL_SERVICE)
   set(ADB_SRCS ${ADB_SRCS} hal/shell_service_uv.c)
 endif()
@@ -76,6 +81,10 @@ endif()
 
 if(ADBD_FILE_SERVICE)
   target_compile_definitions(adbd PUBLIC -DCONFIG_ADBD_FILE_SERVICE=1)
+endif()
+
+if(ADBD_SOCKET_SERVICE)
+  target_compile_definitions(adbd PUBLIC -DCONFIG_ADBD_SOCKET_SERVICE=1)
 endif()
 
 if(ADBD_SHELL_SERVICE)

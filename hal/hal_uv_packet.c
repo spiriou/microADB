@@ -25,6 +25,18 @@
  * Public Functions
  ****************************************************************************/
 
+apacket* adb_hal_apacket_allocate(adb_client_t *c)
+{
+    apacket_uv_t *ap;
+    adb_client_uv_t *client = container_of(c, adb_client_uv_t, client);
+    ap = adb_uv_packet_allocate(client, 0);
+
+    if (ap == NULL)
+        return NULL;
+
+    return &ap->p;
+}
+
 void adb_hal_apacket_release(adb_client_t *c, apacket *p) {
     adb_client_uv_t *client = container_of(c, adb_client_uv_t, client);
     apacket_uv_t *up = container_of(p, apacket_uv_t, p);
