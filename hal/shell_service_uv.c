@@ -196,11 +196,13 @@ static void shell_kick(adb_service_t *service) {
     ash_service_t *svc = container_of(service, ash_service_t, service);
 
     if (!svc->wait_ack) {
-        int ret;
-        ret = uv_read_start((uv_stream_t*)&svc->shell_pipe,
-            alloc_buffer, pipe_on_data_available);
-        /* TODO handle return code */
-        assert(ret == 0);
+        if (!uv_is_active((uv_handle_t*)&svc->shell_pipe)) {
+            int ret;
+            ret = uv_read_start((uv_stream_t*)&svc->shell_pipe,
+                alloc_buffer, pipe_on_data_available);
+            /* TODO handle return code */
+            assert(ret == 0);
+        }
     }
 }
 
