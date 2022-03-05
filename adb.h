@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 #include <assert.h>
 
 #ifndef UNUSED
@@ -182,6 +183,7 @@ int adb_check_frame_header(apacket *p);
 int adb_check_auth_frame_header(apacket *p);
 
 void adb_process_packet(adb_client_t *client, apacket *p);
+apacket* adb_hal_apacket_allocate(adb_client_t *c);
 void adb_hal_apacket_release(adb_client_t *client, apacket *p);
 
 /* Services */
@@ -191,6 +193,27 @@ void adb_service_close(adb_client_t *client, adb_service_t *svc, apacket *p);
 
 #ifdef CONFIG_ADBD_AUTHENTICATION
 extern const unsigned char *g_adb_public_keys[];
+#endif
+
+/* TCP services */
+
+#ifdef CONFIG_ADBD_SOCKET_SERVICE
+typedef struct adb_tcp_socket_s adb_tcp_socket_t;
+typedef struct adb_tcp_conn_s adb_tcp_conn_t;
+
+int adb_hal_socket_connect(struct adb_client_s *client, adb_tcp_socket_t *socket,
+                           int port, adb_tcp_conn_t *conn,
+                           void (*on_connect_cb)(adb_tcp_socket_t*, int));
+
+void adb_hal_socket_close(adb_tcp_socket_t *socket,
+    void (*close_cb)(adb_tcp_socket_t*));
+
+int adb_hal_socket_write(adb_tcp_socket_t *socket, struct apacket_s *p,
+    void (*cb)(struct adb_client_s*, adb_tcp_socket_t*, struct apacket_s*, bool fail));
+
+int adb_hal_socket_start(adb_tcp_socket_t *socket,
+    void (*on_data_cb)(adb_tcp_socket_t*, struct apacket_s*));
+int adb_hal_socket_stop(adb_tcp_socket_t *socket);
 #endif
 
 #endif /* __ADB_H */

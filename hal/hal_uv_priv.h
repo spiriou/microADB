@@ -52,6 +52,20 @@ typedef struct adb_context_uv_s {
 #endif
 } adb_context_uv_t;
 
+#ifdef CONFIG_ADBD_SOCKET_SERVICE
+struct adb_tcp_socket_s {
+    uv_tcp_t handle;
+    void (*close_cb)(struct adb_tcp_socket_s*);
+    void (*on_data_cb)(struct adb_tcp_socket_s*, struct apacket_s*);
+    void (*on_write_cb)(struct adb_client_s*, struct adb_tcp_socket_s*, struct apacket_s*, bool);
+};
+
+struct adb_tcp_conn_s {
+    uv_connect_t connect_req;
+    void (*on_connect_cb)(adb_tcp_socket_t*, int);
+};
+#endif
+
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
