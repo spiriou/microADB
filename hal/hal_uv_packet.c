@@ -169,7 +169,8 @@ void adb_uv_on_data_available(adb_client_uv_t *client, uv_stream_t *stream,
     }
     if (nread < 0) {
         if (nread != UV_EOF) {
-            adb_log("read failed %d\n", nread);
+            adb_log("GOT ERROR nread %d, strerror is %s\n", nread,
+                    uv_err_name((int)nread));
         }
         client->client.ops->close(&client->client);
         return;
