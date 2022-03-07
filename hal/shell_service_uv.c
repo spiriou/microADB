@@ -129,7 +129,8 @@ static void pipe_on_data_available(uv_stream_t* stream, ssize_t nread,
 
     if (nread <= 0) {
         if (nread != UV_EOF) {
-            adb_log("GOT ERROR nread %d\n", nread);
+            adb_log("GOT ERROR nread %d, strerror is %s\n", nread,
+                    uv_err_name((int)nread));
         }
         adb_service_close(&client->client, &service->service, p);
         return;

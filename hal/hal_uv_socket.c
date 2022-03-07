@@ -71,6 +71,10 @@ static void tcp_stream_on_data_available(uv_stream_t* handle,
     }
     else {
         /* Notify service an error occured. */
+        if (nread != UV_EOF) {
+            adb_log("GOT ERROR nread %d, strerror is %s\n", nread,
+                    uv_err_name((int)nread));
+        }
         ap->p.msg.data_length = 0;
     }
 
