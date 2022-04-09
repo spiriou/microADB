@@ -26,5 +26,10 @@
 
 adb_service_t* tcp_forward_service(adb_client_t *client, const char *params,
                                    apacket *p);
+adb_service_t* tcp_reverse_service(adb_client_t *client, const char *params,
+                                   apacket *p);
+
+adb_tcp_socket_t* tcp_allocate_rstream_socket(adb_client_t *client);
+void tcp_release_rstream_socket(adb_tcp_socket_t *socket);
 
 #endif /* __TCP_SERVICE_H__ */

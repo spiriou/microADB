@@ -169,6 +169,7 @@ static void handle_close_frame(adb_client_t *client, apacket *p) {
 
     svc = adb_client_find_service(client, p->msg.arg1, p->msg.arg0);
     if (svc != NULL) {
+       /* Service cannot send anything after CLOSE packet */
        adb_service_close(client, svc, NULL);
     }
     adb_hal_apacket_release(client, p);
@@ -334,9 +335,9 @@ void adb_send_data_frame(adb_client_t *client, apacket *p)
 
 void adb_register_service(adb_service_t *svc, adb_client_t *client) {
     svc->id = client->next_service_id++;
-    svc->next = client->services;
+
     adb_log("id=%d, peer=%d\n", svc->id, svc->peer_id);
-    client->services = svc;
+    adb_list_insert(&client->services, &svc->entry);
 }
 
 static adb_service_t *adb_service_open(adb_client_t *client, const char *name, apacket *p)
@@ -361,6 +362,10 @@ static adb_service_t *adb_service_open(adb_client_t *client, const char *name, a
 #ifdef CONFIG_ADBD_SOCKET_SERVICE
         if (!strncmp(name, "tcp:", 4)) {
             svc = tcp_forward_service(client, name, p);
+            break;
+        }
+        if (!strncmp(name, "reverse:", 8)) {
+            svc = tcp_reverse_service(client, name, p);
             break;
         }
 #endif
@@ -391,7 +396,7 @@ static adb_service_t *adb_service_open(adb_client_t *client, const char *name, a
     } while (0);
 
     if (svc == NULL) {
-        adb_log("fail to init service %s\n", name);
+        /* Either service init failed or service completed in init function */
         return NULL;
     }
 
@@ -401,58 +406,58 @@ static adb_service_t *adb_service_open(adb_client_t *client, const char *name, a
 }
 
 void adb_service_close(adb_client_t *client, adb_service_t *svc, apacket *p) {
-    adb_service_t *cur_svc = client->services;
+    adb_list_remove(&client->services, &svc->entry);
 
-    if (cur_svc == svc) {
-        client->services = svc->next;
-        goto exit_free_service;
-    }
-
-    while (cur_svc->next) {
-        if (cur_svc->next == svc) {
-            cur_svc->next = svc->next;
-            goto exit_free_service;
-        }
-    }
-
-    adb_log("service %p not found\n", svc);
-    return;
-
-exit_free_service:
     if (p) {
         send_close_frame(client, p, svc->id, svc->peer_id);
     }
+
     svc->ops->on_close(svc);
 }
+
+#ifdef CONFIG_ADBD_SOCKET_SERVICE
+void adb_register_reverse_server(adb_client_t *client,
+                                 adb_reverse_server_t *server) {
+    adb_log("register tcp:%d <-> tcp:%d\n",
+            server->local_port, server->remote_port);
+    adb_list_insert(&client->reverse_servers, &server->entry);
+}
+
+void adb_reverse_server_close(adb_client_t *client,
+                              adb_reverse_server_t *server) {
+    adb_list_remove(&client->reverse_servers, &server->entry);
+    adb_hal_destroy_reverse_server(server);
+}
+#endif
 
 static adb_service_t* adb_client_find_service(adb_client_t *client, int id, int peer_id) {
     adb_service_t *svc;
 
-    svc = client->services;
-    while (svc != NULL) {
+    adb_list_foreach(&client->services, svc, adb_service_t, entry) {
         if (svc->id == id && (peer_id == 0 || svc->peer_id == peer_id)) {
             return svc;
         }
-        svc = svc->next;
     }
 
     return NULL;
 }
 
 void adb_client_kick_services(adb_client_t *client) {
-    adb_service_t *service = client->services;
-    while (service != NULL) {
+    adb_service_t *service;
+    adb_list_foreach(&client->services, service, adb_service_t, entry) {
         if (service->ops->on_kick) {
             service->ops->on_kick(service);
         }
-        service = service->next;
     }
 }
 
 static void adb_init_client(adb_client_t *client) {
     /* setup adb_client */
     client->next_service_id = 1;
-    client->services = NULL;
+    adb_list_init(&client->services);
+#ifdef CONFIG_ADBD_SOCKET_SERVICE
+    adb_list_init(&client->reverse_servers);
+#endif
     client->is_connected = 0;
 }
 
@@ -467,13 +472,21 @@ adb_client_t *adb_create_client(size_t size) {
 }
 
 void adb_destroy_client(adb_client_t *client) {
-    adb_service_t *service = client->services;
-    while (service != NULL) {
+    while (!adb_list_empty(&client->services)) {
+        adb_service_t *service = container_of(adb_list_next(&client->services),
+                                              adb_service_t, entry);
         adb_log("stop service %d <-> %d\n", service->id, service->peer_id);
-        // FIXME send close frame ?
         adb_service_close(client, service, NULL);
-        service = service->next;
     }
+#ifdef CONFIG_ADBD_SOCKET_SERVICE
+    while (!adb_list_empty(&client->reverse_servers)) {
+        adb_reverse_server_t *server =
+            container_of(adb_list_next(&client->reverse_servers),
+                         adb_reverse_server_t, entry);
+
+        adb_reverse_server_close(client, server);
+    }
+#endif
     adb_hal_destroy_client(client);
 }
 

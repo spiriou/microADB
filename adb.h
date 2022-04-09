@@ -27,6 +27,8 @@
 #include <stdbool.h>
 #include <assert.h>
 
+#include "adb_list.h"
+
 #ifndef UNUSED
 #define UNUSED(x) (void)(x)
 #endif
@@ -81,6 +83,13 @@ void adb_reboot_impl(const char *target);
 struct adb_client_s;
 struct adb_service_s;
 struct apacket_s;
+#ifdef CONFIG_ADBD_SOCKET_SERVICE
+struct adb_reverse_server_s;
+
+typedef struct adb_tcp_socket_s adb_tcp_socket_t;
+typedef struct adb_tcp_conn_s adb_tcp_conn_t;
+typedef struct adb_tcp_server_s adb_tcp_server_t;
+#endif
 
 /****************************************************************************
  * Public types
@@ -116,16 +125,27 @@ typedef struct adb_service_ops_s {
 } adb_service_ops_t;
 
 typedef struct adb_service_s {
-    /* chain pointers for the local/remote list of
-    ** asockets that this asocket lives in
-    */
-    struct adb_service_s *next;
+    /* Pointer used to keep track of all the services created by a client */
+    adb_list_entry_t entry;
     const adb_service_ops_t *ops;
 
     /* the unique identifier for this service */
     int id;
     int peer_id;
 } adb_service_t;
+
+#ifdef CONFIG_ADBD_SOCKET_SERVICE
+typedef struct adb_reverse_server_s {
+    /* Pointer used to keep track of all the reverse servers
+     * created by a client.
+     */
+    adb_list_entry_t entry;
+
+    /* Reverse servers local and remote tcp ports */
+    uint16_t local_port;
+    uint16_t remote_port;
+} adb_reverse_server_t;
+#endif
 
 typedef struct adb_client_ops_s {
     int (*write)(struct adb_client_s *client, apacket *p);
@@ -136,10 +156,14 @@ typedef struct adb_client_ops_s {
 typedef struct adb_client_s {
     const adb_client_ops_t *ops;
     int next_service_id;
-    adb_service_t *services;
+    adb_list_entry_t services;
     uint8_t is_connected;
 #ifdef CONFIG_ADBD_AUTHENTICATION
     uint8_t token[CONFIG_ADBD_TOKEN_SIZE];
+#endif
+#ifdef CONFIG_ADBD_SOCKET_SERVICE
+    /* Keep track of reverse servers attached to a client */
+    adb_list_entry_t reverse_servers;
 #endif
 } adb_client_t;
 
@@ -198,8 +222,11 @@ extern const unsigned char *g_adb_public_keys[];
 /* TCP services */
 
 #ifdef CONFIG_ADBD_SOCKET_SERVICE
-typedef struct adb_tcp_socket_s adb_tcp_socket_t;
-typedef struct adb_tcp_conn_s adb_tcp_conn_t;
+void adb_register_reverse_server(adb_client_t *client,
+                                 adb_reverse_server_t *server);
+void adb_reverse_server_close(adb_client_t *client,
+                              adb_reverse_server_t *server);
+void adb_hal_destroy_reverse_server(adb_reverse_server_t *server);
 
 int adb_hal_socket_connect(struct adb_client_s *client, adb_tcp_socket_t *socket,
                            int port, adb_tcp_conn_t *conn,
@@ -207,6 +234,13 @@ int adb_hal_socket_connect(struct adb_client_s *client, adb_tcp_socket_t *socket
 
 void adb_hal_socket_close(adb_tcp_socket_t *socket,
     void (*close_cb)(adb_tcp_socket_t*));
+
+int adb_hal_server_listen(struct adb_client_s *client, adb_tcp_server_t *server,
+                          int port,
+                          void (*on_connect_cb)(adb_tcp_server_t*, adb_tcp_socket_t*));
+
+void adb_hal_server_close(adb_tcp_server_t *server,
+    void (*close_cb)(adb_tcp_server_t*));
 
 int adb_hal_socket_write(adb_tcp_socket_t *socket, struct apacket_s *p,
     void (*cb)(struct adb_client_s*, adb_tcp_socket_t*, struct apacket_s*, bool fail));
