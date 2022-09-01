@@ -348,7 +348,7 @@ adb_service_t *shell_service(adb_client_t *client, const char *params) {
 #endif
 
     if (target_cmd[0] != 0) {
-        /* This is not an interactive session. Swith to RAW mode */
+        /* This is not an interactive session. Switch to RAW mode */
 
         cfmakeraw(&slavetermios);
         tcsetattr(fds[1], TCSADRAIN, &slavetermios);
