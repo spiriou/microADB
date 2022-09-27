@@ -64,6 +64,12 @@ struct adb_tcp_conn_s {
     uv_connect_t connect_req;
     void (*on_connect_cb)(adb_tcp_socket_t*, int);
 };
+
+typedef struct adb_tcp_server_s {
+    uv_tcp_t handle;
+    void (*close_cb)(struct adb_tcp_server_s*);
+    void (*on_connect_cb)(struct adb_tcp_server_s*, adb_tcp_socket_t*);
+} adb_tcp_server_t;
 #endif
 
 /****************************************************************************

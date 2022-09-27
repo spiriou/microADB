@@ -87,6 +87,16 @@ void adb_hal_socket_close(adb_tcp_socket_t *socket, void (*close_cb)(adb_tcp_soc
     uv_close((uv_handle_t*)&socket->handle, socket_close_cb);
 }
 
+static void server_close_cb(uv_handle_t* handle) {
+    adb_tcp_server_t *server = container_of(handle, adb_tcp_server_t, handle);
+    server->close_cb(server);
+}
+
+void adb_hal_server_close(adb_tcp_server_t *server, void (*close_cb)(adb_tcp_server_t*)) {
+    server->close_cb = close_cb;
+    uv_close((uv_handle_t*)&server->handle, server_close_cb);
+}
+
 int adb_hal_socket_start(adb_tcp_socket_t *socket,
     void (*on_data_cb)(adb_tcp_socket_t*, apacket*)) {
 
@@ -159,4 +169,66 @@ int adb_hal_socket_connect(adb_client_t *client, adb_tcp_socket_t *socket,
                           &socket->handle,
                           (const struct sockaddr*) &addr,
                           connect_cb);
+}
+
+static void tcp_server_on_connection(uv_stream_t* server, int status) {
+    int ret;
+    adb_tcp_server_t *socket =
+        (adb_tcp_server_t*)container_of(server, adb_tcp_server_t, handle);
+    adb_client_uv_t *client = (adb_client_uv_t*)server->data;
+    // adb_rstream_service_t* rsvc;
+    adb_tcp_socket_t *stream_socket;
+
+    adb_log("entry %d\n", status);
+
+    if (status != 0) {
+        adb_log("Connect error %s\n", uv_err_name(status));
+    }
+    assert(status == 0);
+
+    server = server;
+    stream_socket = tcp_allocate_rstream_socket(&client->client);
+    if (stream_socket == NULL) {
+        fatal("out of memory");
+    }
+
+    assert(0 == uv_tcp_init(server->loop, &stream_socket->handle));
+    stream_socket->handle.data = client;
+
+    ret = uv_accept(server, (uv_stream_t*)&stream_socket->handle);
+    adb_log("ACCEPT %d\n", ret);
+    if (ret) {
+        // FIXME
+        tcp_release_rstream_socket(stream_socket);
+        // adb_service_close(&client->client, &rsvc->service, NULL);
+        return;
+    }
+
+    socket->on_connect_cb(socket, stream_socket);
+}
+
+int adb_hal_server_listen(adb_client_t *client, adb_tcp_server_t *server, int port,
+                          void (*on_connect_cb)(adb_tcp_server_t*, adb_tcp_socket_t*)) {
+    int ret;
+    struct sockaddr_in addr;
+    uv_handle_t *handle = (uv_handle_t*)(((adb_client_uv_t*)client)+1);
+
+    assert(0 == uv_ip4_addr("0.0.0.0", port, &addr));
+    assert(0 == uv_tcp_init(handle->loop, &server->handle));
+    if (uv_tcp_bind(&server->handle, (const struct sockaddr*) &addr, 0) != 0) {
+        adb_log("bind to 0.0.0.0:%d failed\n", port);
+        return -1;
+    }
+
+    server->handle.data = client;
+    server->on_connect_cb = on_connect_cb;
+
+    ret = uv_listen((uv_stream_t*)&server->handle,
+                    SOMAXCONN, tcp_server_on_connection);
+    if (ret) {
+        adb_log("listen failed %d\n", ret);
+        return -1;
+    }
+
+    return 0;
 }

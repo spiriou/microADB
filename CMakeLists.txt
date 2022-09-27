@@ -35,6 +35,7 @@ set (ADB_SRCS
   adb_banner.c
   adb_client.c
   adb_frame.c
+  adb_list.c
   hal/hal_uv.c
   hal/hal_uv_packet.c
   hal/hal_uv_client_tcp.c)
