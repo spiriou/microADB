@@ -468,11 +468,13 @@ adb_client_t *adb_create_client(size_t size) {
 
 void adb_destroy_client(adb_client_t *client) {
     adb_service_t *service = client->services;
+    adb_service_t *next;
     while (service != NULL) {
         adb_log("stop service %d <-> %d\n", service->id, service->peer_id);
         // FIXME send close frame ?
+        next = service->next;
         adb_service_close(client, service, NULL);
-        service = service->next;
+        service = next;
     }
     adb_hal_destroy_client(client);
 }
