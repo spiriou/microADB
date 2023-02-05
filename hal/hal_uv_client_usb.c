@@ -18,6 +18,7 @@
 #include "adb.h"
 #include "hal_uv_priv.h"
 #include <uv.h>
+#include <unistd.h>
 
 /****************************************************************************
  * Private types
