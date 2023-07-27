@@ -74,7 +74,7 @@ static int usb_uv_write(adb_client_t *c, apacket *p) {
     ret =uv_write(&up->wr, (uv_stream_t*)&client->pipe, buf, buf_cnt,
         adb_uv_after_write);
     if (ret) {
-        adb_log("uv_write failed %d %d\n", ret, errno);
+        adb_err("uv_write failed %d %d\n", ret, errno);
         /* Caller will destroy client */
         return -1;
     }
@@ -127,7 +127,7 @@ int adb_uv_usb_setup(adb_context_uv_t *adbd, const char *path) {
 
     client = (adb_client_usb_t*)adb_uv_create_client(sizeof(*client));
     if (client == NULL) {
-        adb_log("failed to allocate usb client\n");
+        adb_err("failed to allocate usb client\n");
         return -ENOMEM;
     }
 
@@ -138,20 +138,20 @@ int adb_uv_usb_setup(adb_context_uv_t *adbd, const char *path) {
     ret = uv_pipe_init(adbd->loop, &client->pipe, 0);
     client->pipe.data = adbd;
     if (ret) {
-        adb_log("usb init error %d %d\n", ret, errno);
+        adb_err("usb init error %d %d\n", ret, errno);
         return ret;
     }
 
     fd = open(path, O_RDWR | O_CLOEXEC);
 
     if (fd < 0) {
-        adb_log("failed to open usb device %d %d\n", fd, errno);
+        adb_err("failed to open usb device %d %d\n", fd, errno);
         return fd;
     }
 
     ret = uv_pipe_open(&client->pipe, fd);
     if (ret) {
-        adb_log("usb pipe open error %d %d\n", ret, errno);
+        adb_err("usb pipe open error %d %d\n", ret, errno);
         close(fd);
         return ret;
     }

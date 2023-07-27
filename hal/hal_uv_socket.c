@@ -128,7 +128,7 @@ int adb_hal_socket_write(adb_tcp_socket_t *socket, apacket *p,
 
     ret = uv_write(&uv_p->wr, (uv_stream_t*)&socket->handle, &buf, 1, fwd_tcp_after_write);
     if (ret) {
-        adb_log("uv_write failed (len=%d, ret=%d, errno=%d)\n", buf.len, ret, errno);
+        adb_err("uv_write failed (len=%d, ret=%d, errno=%d)\n", buf.len, ret, errno);
         return -1;
     }
 

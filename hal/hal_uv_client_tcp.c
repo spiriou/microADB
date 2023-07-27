@@ -65,7 +65,7 @@ static int tcp_uv_write(adb_client_t *c, apacket *p) {
     ret = uv_write(&up->wr, (uv_stream_t*)&client->socket, &buf, 1,
         adb_uv_after_write);
     if (ret) {
-        adb_log("uv_write failed %d %d\n", ret, errno);
+        adb_err("uv_write failed %d %d\n", ret, errno);
         /* Caller will destroy client */
         return -1;
     }
@@ -113,13 +113,13 @@ static void tcp_on_connection(uv_stream_t* server, int status) {
     adb_context_uv_t *adbd = (adb_context_uv_t*)server->data;
 
     if (status < 0) {
-        adb_log("connect failed %d\n", status);
+        adb_err("connect failed %d\n", status);
         return;
     }
 
     client = (adb_client_tcp_t*)adb_uv_create_client(sizeof(*client));
     if (client == NULL) {
-        adb_log("failed to allocate stream\n");
+        adb_err("failed to allocate stream\n");
         return;
     }
 
@@ -155,7 +155,7 @@ int adb_uv_tcp_setup(adb_context_uv_t *adbd) {
     ret = uv_tcp_init(adbd->loop, &adbd->tcp_server);
     adbd->tcp_server.data = adbd;
     if (ret) {
-        adb_log("tcp server init error %d %d\n", ret, errno);
+        adb_err("tcp server init error %d %d\n", ret, errno);
         return ret;
     }
 
@@ -165,14 +165,14 @@ int adb_uv_tcp_setup(adb_context_uv_t *adbd) {
 
     ret = uv_tcp_bind(&adbd->tcp_server, (const struct sockaddr*)&addr, 0);
     if (ret) {
-        adb_log("tcp server bind error %d %d\n", ret, errno);
+        adb_err("tcp server bind error %d %d\n", ret, errno);
         return ret;
     }
 
     ret = uv_listen((uv_stream_t*)&adbd->tcp_server,
         SOMAXCONN, tcp_on_connection);
     if (ret) {
-        adb_log("tcp server listen error %d %d\n", ret, errno);
+        adb_err("tcp server listen error %d %d\n", ret, errno);
         return ret;
     }
     return 0;

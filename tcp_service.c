@@ -66,12 +66,12 @@ static void tcp_stream_on_data_cb(adb_tcp_socket_t *socket, apacket *p) {
     svc = container_of(socket, adb_stream_service_t, socket);
 
     if (svc->state != F_CONNECTED) {
-        adb_log("Invalid service state %d\n", svc->state);
+        adb_err("Invalid service state %d\n", svc->state);
         goto exit_close_service;
     }
 
     if (p->msg.data_length <= 0) {
-        adb_log("tcp stream error %d\n", p->msg.data_length);
+        adb_err("tcp stream error %d\n", p->msg.data_length);
         goto exit_close_service;
     }
 
@@ -173,7 +173,7 @@ static int atcp_stream_on_write(adb_service_t *service, apacket *p) {
     ret = adb_hal_socket_write(&svc->socket, p, stream_send_data_frame_cb);
 
     if (ret < 0) {
-        adb_log("adb_hal_socket_write failed (ret=%d, errno=%d)\n", ret, errno);
+        adb_err("adb_hal_socket_write failed (ret=%d, errno=%d)\n", ret, errno);
         return -1;
     }
 
@@ -204,7 +204,7 @@ static void tcp_stream_on_connect_cb(adb_tcp_socket_t *socket, int status) {
         container_of(socket, adb_stream_service_t, socket);
 
     if (status || svc->state != F_NOT_CONNECTED) {
-        adb_log("connect failed (%d)\n", status);
+        adb_err("connect failed (%d)\n", status);
         svc->state = F_ERROR_CLOSE;
         /* According to ADB protocol, the local-id MUST be zero
          * to indicate with this CLOSE a failed OPEN.
@@ -246,7 +246,7 @@ adb_service_t* tcp_forward_service(adb_client_t *client, const char *params, apa
         tcp_stream_on_connect_cb);
 
     if (ret) {
-        adb_log("Failed to connect to port %d (ret=%d, errno=%d)\n",
+        adb_err("Failed to connect to port %d (ret=%d, errno=%d)\n",
                 port, ret, errno);
         free(fsvc);
         return NULL;
