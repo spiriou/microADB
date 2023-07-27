@@ -80,7 +80,7 @@ apacket_uv_t* adb_uv_packet_allocate(adb_client_uv_t *client, int before_connect
 
     if (p == NULL) {
       /* out of memory, stop adb server */
-      adb_log("failed to allocate an apacket\n");
+      adb_err("failed to allocate an apacket\n");
       /* FIXME calling client close() now may lead to memory corruption */
       client->client.ops->close(&client->client);
       return NULL;
@@ -95,7 +95,7 @@ void adb_uv_after_write(uv_write_t* req, int status) {
     adb_client_uv_t *client = (adb_client_uv_t*)req->data;
 
     if (status < 0) {
-        adb_log("write failed %d\n", status);
+        adb_err("write failed %d\n", status);
         adb_hal_apacket_release(&client->client, &up->p);
 
         client->client.ops->close(&client->client);
@@ -169,7 +169,7 @@ void adb_uv_on_data_available(adb_client_uv_t *client, uv_stream_t *stream,
     }
     if (nread < 0) {
         if (nread != UV_EOF) {
-            adb_log("read failed %d\n", nread);
+            adb_err("read failed %d\n", nread);
         }
         client->client.ops->close(&client->client);
         return;
@@ -185,7 +185,7 @@ void adb_uv_on_data_available(adb_client_uv_t *client, uv_stream_t *stream,
         if (client->cur_len+nread >= (int)sizeof(amessage) && (
             (!client->client.is_connected && adb_check_auth_frame_header(&up->p)) ||
             (client->client.is_connected && adb_check_frame_header(&up->p)))) {
-            adb_log("bad header: terminated (data)\n");
+            adb_err("bad header: terminated (data)\n");
             client->client.ops->close(&client->client);
             return;
         }
@@ -201,7 +201,7 @@ void adb_uv_on_data_available(adb_client_uv_t *client, uv_stream_t *stream,
     /* Check data */
 
     if(adb_check_frame_data(&up->p)) {
-        adb_log("bad data: terminated (data)\n");
+        adb_err("bad data: terminated (data)\n");
         client->client.ops->close(&client->client);
         return;
     }

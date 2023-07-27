@@ -24,7 +24,7 @@
 static int adb_check_frame_magic(apacket *p)
 {
     if(p->msg.magic != (p->msg.command ^ 0xffffffff)) {
-        adb_log("invalid frame magic\n");
+        adb_err("invalid frame magic\n");
         return -1;
     }
 
@@ -43,7 +43,7 @@ int adb_check_frame_header(apacket *p)
     }
 
     if(p->msg.data_length > CONFIG_ADBD_PAYLOAD_SIZE) {
-        adb_log("invalid frame size %d\n", p->msg.data_length);
+        adb_err("invalid frame size %d\n", p->msg.data_length);
         return -1;
     }
 
@@ -58,7 +58,7 @@ int adb_check_auth_frame_header(apacket *p)
     }
 
     if(p->msg.data_length > CONFIG_ADBD_CNXN_PAYLOAD_SIZE) {
-        adb_log("invalid frame size %d\n", p->msg.data_length);
+        adb_err("invalid frame size %d\n", p->msg.data_length);
         return -1;
     }
 

@@ -40,8 +40,17 @@
 
 /* Logging methods */
 
-void adb_log_impl(const char *func, int line, const char *fmt, ...);
-#define adb_log(...) adb_log_impl(__func__, __LINE__, __VA_ARGS__)
+#define ADB_ERR             0
+#define ADB_WARN            1
+#define ADB_INFO            2
+void adb_log_impl(int priority, const char *func, int line,
+                  const char *fmt, ...);
+#define adb_log(...) \
+  adb_log_impl(ADB_INFO, __func__, __LINE__, __VA_ARGS__)
+#define adb_warn(...) \
+  adb_log_impl(ADB_WARN, __func__, __LINE__, __VA_ARGS__)
+#define adb_err(...) \
+  adb_log_impl(ADB_ERR, __func__, __LINE__, __VA_ARGS__)
 
 /* Platform support */
 

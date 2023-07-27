@@ -185,7 +185,7 @@ static void prepare_fail_message(afs_service_t *svc, apacket *p, const char *rea
     int len;
     union syncmsg *msg = (union syncmsg*)p->data;
 
-    adb_log("sync: failure: %s\n", reason);
+    adb_err("sync: failure: %s\n", reason);
 
     len = min(strlen(reason),
         CONFIG_ADBD_PAYLOAD_SIZE-sizeof(msg->data));
@@ -193,7 +193,7 @@ static void prepare_fail_message(afs_service_t *svc, apacket *p, const char *rea
 
     msg->data.id = ID_FAIL;
     msg->data.size = htoll(len);
-    
+
     p->write_len = sizeof(msg->data) + len;
 }
 
@@ -255,7 +255,7 @@ static int create_path_directories(char *name)
         ret = mkdir(name, mode);
         *x = '/';
         if((ret < 0) && (errno != EEXIST)) {
-            adb_log("mkdir <%s> failed: %d\n", name, errno);
+            adb_err("mkdir <%s> failed: %d\n", name, errno);
             return ret;
         }
     }
@@ -325,13 +325,13 @@ static int state_init_list(afs_service_t *svc, apacket *p)
     int len = strlen(svc->buff);
     /* PATH_MAX + "/" + 1 char filename at least + "\x0" => -3 */
     if (len >= PATH_MAX-3) {
-        adb_log("Dir name too big\n");
+        adb_err("Dir name too big\n");
         goto exit_done;
     }
 
     svc->list.path = (char*)malloc(PATH_MAX);
     if (svc->list.path == NULL) {
-        adb_log("Cannot allocate dirname\n");
+        adb_err("Cannot allocate dirname\n");
         goto exit_done;
     }
 
@@ -387,7 +387,7 @@ static int state_process_list(afs_service_t *svc, apacket *p)
         (int)(svc->list.file_ptr - svc->list.path);
 
     if (len >= remaining) {
-        adb_log("filename <%s> too long to stat: %d/%d\n",
+        adb_err("filename <%s> too long to stat: %d/%d\n",
             de->d_name, len, remaining);
         msg->dent.mode = 0;
         msg->dent.size = 0;
@@ -400,7 +400,7 @@ static int state_process_list(afs_service_t *svc, apacket *p)
 
         /* Do not follow symlinks */
         if((ret = lstat(svc->list.path, &st))) {
-            adb_log("stat failed <%s> %d %d\n", svc->list.path, ret, errno);
+            adb_err("stat failed <%s> %d %d\n", svc->list.path, ret, errno);
             st.st_mode = 0;
             st.st_size = 0;
             st.st_mtime = 0;
@@ -412,7 +412,7 @@ static int state_process_list(afs_service_t *svc, apacket *p)
     }
 
     if (len > (int)(CONFIG_ADBD_PAYLOAD_SIZE - sizeof(msg->dent))) {
-        adb_log("filename <%s> too long: %d/%d\n",
+        adb_err("filename <%s> too long: %d/%d\n",
             de->d_name,
             len,
             (int)(CONFIG_ADBD_PAYLOAD_SIZE - sizeof(msg->dent)));
@@ -451,7 +451,7 @@ static int state_init_send(afs_service_t *svc, apacket *p)
     unlink(svc->buff);
 
     if(create_path_directories(svc->buff) != 0) {
-        adb_log("failed to create path <%s>\n", svc->buff);
+        adb_err("failed to create path <%s>\n", svc->buff);
         prepare_fail_errno(svc, p);
         return 0;
     }
@@ -468,7 +468,7 @@ static int state_init_send_file(afs_service_t *svc, apacket *p, mode_t mode)
     svc->send_file.fd = open(svc->buff, O_WRONLY | O_CREAT | O_TRUNC, mode);
 
     if(svc->send_file.fd < 0) {
-        adb_log("failed to open file <%s> (fd=%d)\n",
+        adb_err("failed to open file <%s> (fd=%d)\n",
             svc->buff, svc->send_file.fd);
         prepare_fail_errno(svc, p);
         return 0;
@@ -489,7 +489,7 @@ static int state_init_send_link(afs_service_t *svc, apacket *p)
     }
     svc->send_link.path = (char*)malloc(len+1);
     if (svc->send_link.path == NULL) {
-        adb_log("Cannot allocate dirname\n");
+        adb_err("Cannot allocate dirname\n");
         prepare_fail_message(svc, p, "out of memory");
         return 0;
     }
@@ -555,7 +555,7 @@ static int state_process_send_file(afs_service_t *svc, apacket *p)
                 continue;
             }
             /* TODO handle nonblocking io */
-            adb_log("write error %d %d\n", ret, errno);
+            adb_err("write error %d %d\n", ret, errno);
             prepare_fail_message(svc, p, "write error");
             return 0;
         }
@@ -590,7 +590,7 @@ static int state_process_send_sym(afs_service_t *svc, apacket *p) {
     ret = symlink(svc->buff, svc->send_link.path);
 
     if (ret) {
-        adb_log("symlink failed %d %d\n", ret, errno);
+        adb_err("symlink failed %d %d\n", ret, errno);
         prepare_fail_message(svc, p, "symlink call failed");
         return 0;
     }
@@ -605,7 +605,7 @@ static int state_init_recv(afs_service_t *svc, apacket *p)
 {
     svc->recv.fd = open(svc->buff, O_RDONLY);
     if(svc->recv.fd < 0) {
-        adb_log("Cannot open file <%s> for read %d\n",
+        adb_err("Cannot open file <%s> for read %d\n",
             svc->buff, errno);
         prepare_fail_message(svc, p, "file does not exist");
         return 0;
@@ -644,7 +644,7 @@ static int state_process_recv(afs_service_t *svc, apacket *p)
 
     /* TODO handle non blocking and EAGAIN */
 
-    adb_log("read failed %d %d\n", ret, errno);
+    adb_err("read failed %d %d\n", ret, errno);
     prepare_fail_message(svc, p, "read failed");
     return 0;
 }
@@ -670,7 +670,7 @@ static int state_wait_cmd(afs_service_t *svc, apacket *p)
     }
 
     if (msg->req.namelen >= PATH_MAX) {
-        adb_log("Fail path too big (%d)\n", msg->req.namelen);
+        adb_err("Fail path too big (%d)\n", msg->req.namelen);
         return -1;
     }
 
@@ -719,7 +719,7 @@ static int state_wait_cmd_data(afs_service_t *svc, apacket *p)
         break;
 
     default:
-        adb_log("Unexpected command 0x%x\n", svc->cmd);
+        adb_err("Unexpected command 0x%x\n", svc->cmd);
         ret = -1;
     }
 
@@ -755,13 +755,13 @@ static int file_sync_on_write(adb_service_t *service, apacket *p) {
 #ifdef CONFIG_ADBD_FILE_SYMLINK
                 ret = state_process_send_sym(svc, p);
 #else
-                adb_log("symlink not supported\n");
+                adb_err("symlink not supported\n");
                 ret = -1;
 #endif
                 break;
 
             default:
-                adb_log("Unexpected state %d\n", svc->state);
+                adb_err("Unexpected state %d\n", svc->state);
                 ret = -1;
         }
 
@@ -801,7 +801,7 @@ static int file_sync_on_ack(adb_service_t *service, apacket *p) {
             break;
 
         default:
-            adb_log("ERROR state %d\n", svc->state);
+            adb_err("ERROR state %d\n", svc->state);
             ret = -1;
             break;
     }

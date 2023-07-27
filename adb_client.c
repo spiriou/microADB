@@ -79,7 +79,7 @@ static void send_frame(adb_client_t *client, apacket *p)
     int ret = client->ops->write(client, p);
 
     if (ret != 0) {
-        adb_log("write failed %d %d\n",
+        adb_err("write failed %d %d\n",
             ret, sizeof(p->msg)+p->msg.data_length);
         client->ops->close(client);
     }
@@ -116,7 +116,7 @@ static void send_auth_request(adb_client_t *client, apacket *p)
     ret = adb_hal_random(client->token, sizeof(client->token));
 
     if (ret < 0) {
-        adb_log("Failed to generate auth token %d %d\n", ret, errno);
+        adb_err("Failed to generate auth token %d %d\n", ret, errno);
         adb_hal_apacket_release(client, p);
         client->ops->close(client);
         return;
@@ -281,7 +281,7 @@ static void handle_auth_frame(adb_client_t *client, apacket *p) {
 #endif
 
         default:
-            adb_log("invalid id %d\n", p->msg.arg0);
+            adb_err("invalid id %d\n", p->msg.arg0);
             adb_hal_apacket_release(client, p);
     }
 
@@ -391,7 +391,7 @@ static adb_service_t *adb_service_open(adb_client_t *client, const char *name, a
     } while (0);
 
     if (svc == NULL) {
-        adb_log("fail to init service %s\n", name);
+        adb_err("fail to init service %s\n", name);
         return NULL;
     }
 
@@ -415,7 +415,7 @@ void adb_service_close(adb_client_t *client, adb_service_t *svc, apacket *p) {
         }
     }
 
-    adb_log("service %p not found\n", svc);
+    adb_warn("service %p not found\n", svc);
     return;
 
 exit_free_service:

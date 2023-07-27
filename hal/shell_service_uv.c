@@ -129,7 +129,7 @@ static void pipe_on_data_available(uv_stream_t* stream, ssize_t nread,
 
     if (nread <= 0) {
         if (nread != UV_EOF) {
-            adb_log("GOT ERROR nread %d\n", nread);
+            adb_err("GOT ERROR nread %d\n", nread);
         }
         adb_service_close(&client->client, &service->service, p);
         return;
@@ -152,7 +152,7 @@ static void shell_after_write(uv_write_t* req, int status) {
     adb_client_uv_t *client = (adb_client_uv_t *)svc->shell_pipe.data;
 
     if (status < 0) {
-        adb_log("uv_write failed %d\n", status);
+        adb_err("uv_write failed %d\n", status);
         adb_service_close(&client->client, &svc->service, &up->p);
         return;
     }
@@ -175,7 +175,7 @@ static int shell_write(adb_service_t *service, apacket *p) {
     ret = uv_write(&up->wr, (uv_stream_t*)&svc->shell_pipe, &buf, 1,
         shell_after_write);
     if (ret) {
-        adb_log("uv_write failed %d %d\n", ret, errno);
+        adb_err("uv_write failed %d %d\n", ret, errno);
         return -1;
     }
 
@@ -336,7 +336,7 @@ adb_service_t *shell_service(adb_client_t *client, const char *params) {
     fds[1] = open(slavedevice, O_RDWR | O_NOCTTY);
 #endif
     if (fds[1] < 0) {
-        adb_log("slavefd failed (%d)\n", errno);
+        adb_err("slavefd failed (%d)\n", errno);
         goto exit_close_fd0;
     }
 
@@ -393,7 +393,7 @@ adb_service_t *shell_service(adb_client_t *client, const char *params) {
 
     ret = uv_spawn(service->shell_pipe.loop, &service->process, &options);
     if (ret) {
-        adb_log("uv_spawn failed (%s)\n", uv_strerror(ret));
+        adb_err("uv_spawn failed (%s)\n", uv_strerror(ret));
         goto exit_close_fd1;
     }
 
