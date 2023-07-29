@@ -183,7 +183,7 @@ static void prepare_fail_message(afs_service_t *svc, apacket *p, const char *rea
 {
     UNUSED(svc);
     int len;
-    union syncmsg *msg = (union syncmsg*)p->data;
+    union syncmsg *msg = (union syncmsg*)(p->data + p->write_len);
 
     adb_err("sync: failure: %s\n", reason);
 
@@ -194,7 +194,7 @@ static void prepare_fail_message(afs_service_t *svc, apacket *p, const char *rea
     msg->data.id = ID_FAIL;
     msg->data.size = htoll(len);
 
-    p->write_len = sizeof(msg->data) + len;
+    p->write_len += sizeof(msg->data) + len;
 }
 
 static void prepare_fail_errno(afs_service_t *svc, apacket *p)
@@ -205,11 +205,11 @@ static void prepare_fail_errno(afs_service_t *svc, apacket *p)
 static void prepare_okay_message(afs_service_t *svc, apacket *p)
 {
     UNUSED(svc);
-    union syncmsg *msg = (union syncmsg*)p->data;
+    union syncmsg *msg = (union syncmsg*)(p->data + p->write_len);
 
     msg->status.id = ID_OKAY;
     msg->status.msglen = 0;
-    p->write_len = sizeof(msg->status);
+    p->write_len += sizeof(msg->status);
 }
 
 static int read_from_packet(afs_service_t *svc, apacket *p, unsigned int size)
@@ -296,10 +296,10 @@ static void state_reset(afs_service_t *svc)
 static int state_init_stat(afs_service_t *svc, apacket *p)
 {
     struct stat st;
-    union syncmsg *msg = (union syncmsg*)p->data;
+    union syncmsg *msg = (union syncmsg*)(p->data + p->write_len);
 
     msg->stat.id = ID_STAT;
-    p->write_len = sizeof(msg->stat);
+    p->write_len += sizeof(msg->stat);
 
     if(!stat(svc->buff, &st)) {
         msg->stat.mode = htoll(st.st_mode);
@@ -320,7 +320,7 @@ static int state_init_stat(afs_service_t *svc, apacket *p)
 
 static int state_init_list(afs_service_t *svc, apacket *p)
 {
-    union syncmsg *msg = (union syncmsg*)p->data;
+    union syncmsg *msg = (union syncmsg*)(p->data + p->write_len);
 
     int len = strlen(svc->buff);
     /* PATH_MAX + "/" + 1 char filename at least + "\x0" => -3 */
@@ -356,7 +356,7 @@ exit_done:
     msg->dent.size = 0;
     msg->dent.time = 0;
     msg->dent.namelen = 0;
-    p->write_len = sizeof(msg->dent);
+    p->write_len += sizeof(msg->dent);
     return 0;
 }
 
@@ -365,7 +365,7 @@ static int state_process_list(afs_service_t *svc, apacket *p)
     int ret;
     struct dirent *de;
     struct stat st;
-    union syncmsg *msg = (union syncmsg*)p->data;
+    union syncmsg *msg = (union syncmsg*)(p->data + p->write_len);
 
     /* Only send items one by one to ensure there is no overflow in packet */
 
@@ -377,7 +377,7 @@ static int state_process_list(afs_service_t *svc, apacket *p)
         msg->dent.size = 0;
         msg->dent.time = 0;
         msg->dent.namelen = 0;
-        p->write_len = sizeof(msg->dent);
+        p->write_len += sizeof(msg->dent);
         return 0;
     }
 
@@ -423,7 +423,7 @@ static int state_process_list(afs_service_t *svc, apacket *p)
     msg->dent.namelen = htoll(len);
 
     memcpy((&msg->dent)+1, de->d_name, len);
-    p->write_len = sizeof(msg->dent) + len;
+    p->write_len += sizeof(msg->dent) + len;
     return 1;
 }
 
@@ -622,7 +622,7 @@ static int state_init_recv(afs_service_t *svc, apacket *p)
 static int state_process_recv(afs_service_t *svc, apacket *p)
 {
     int ret;
-    union syncmsg *msg = (union syncmsg*)p->data;
+    union syncmsg *msg = (union syncmsg*)(p->data + p->write_len);
 
     ret = read(svc->recv.fd,
         (&msg->data)+1,
@@ -631,14 +631,14 @@ static int state_process_recv(afs_service_t *svc, apacket *p)
     if (ret > 0) {
         msg->data.id = ID_DATA;
         msg->data.size = htoll(ret);
-        p->write_len = sizeof(msg->data) + ret;
+        p->write_len += sizeof(msg->data) + ret;
         return 1;
     }
 
     if (ret == 0) {
         msg->status.id = ID_DONE;
         msg->status.msglen = 0;
-        p->write_len = sizeof(msg->status);
+        p->write_len += sizeof(msg->status);
         return 0;
     }
 
@@ -727,13 +727,13 @@ static int state_wait_cmd_data(afs_service_t *svc, apacket *p)
 }
 
 static int file_sync_on_write(adb_service_t *service, apacket *p) {
-    int ret;
+    int ret = 0;
     afs_service_t *svc = container_of(service, afs_service_t, service);
     svc->packet_ptr = p->data;
 
     /* Process all packet data */
 
-    while (p->msg.data_length > 0) {
+    while (p->msg.data_length > 0 && ret >= 0) {
         switch(svc->state) {
             case AFS_STATE_WAIT_CMD:
                 ret = state_wait_cmd(svc, p);
@@ -765,17 +765,14 @@ static int file_sync_on_write(adb_service_t *service, apacket *p) {
                 ret = -1;
         }
 
-        if (ret > 0) {
-            continue;
-        }
-
         /* process done or error, reset state */
-        state_reset(svc);
-        return ret;
+        if (ret <= 0) {
+            state_reset(svc);
+        }
     }
 
     /* process ok, wait for next frame */
-    return 0;
+    return ret >= 0 ? 0 : ret;
 }
 
 static int file_sync_on_ack(adb_service_t *service, apacket *p) {
