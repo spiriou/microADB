@@ -188,7 +188,7 @@ static void prepare_fail_message(afs_service_t *svc, apacket *p, const char *rea
     adb_err("sync: failure: %s\n", reason);
 
     len = min(strlen(reason),
-        CONFIG_ADBD_PAYLOAD_SIZE-sizeof(msg->data));
+        CONFIG_ADBD_PAYLOAD_SIZE - sizeof(msg->data) - p->write_len);
     memcpy((char*)(&msg->data+1), reason, len);
 
     msg->data.id = ID_FAIL;
@@ -411,12 +411,13 @@ static int state_process_list(afs_service_t *svc, apacket *p)
         msg->dent.time = htoll(st.st_mtime);
     }
 
-    if (len > (int)(CONFIG_ADBD_PAYLOAD_SIZE - sizeof(msg->dent))) {
+    remaining = (int)(CONFIG_ADBD_PAYLOAD_SIZE - sizeof(msg->dent) - p->write_len);
+    if (len > remaining) {
         adb_err("filename <%s> too long: %d/%d\n",
             de->d_name,
             len,
-            (int)(CONFIG_ADBD_PAYLOAD_SIZE - sizeof(msg->dent)));
-        len = CONFIG_ADBD_PAYLOAD_SIZE - sizeof(msg->dent);
+            remaining);
+        len = remaining;
     }
 
     msg->dent.id = ID_DENT;
@@ -626,7 +627,7 @@ static int state_process_recv(afs_service_t *svc, apacket *p)
 
     ret = read(svc->recv.fd,
         (&msg->data)+1,
-        CONFIG_ADBD_PAYLOAD_SIZE-sizeof(msg->data));
+        CONFIG_ADBD_PAYLOAD_SIZE - sizeof(msg->data) - p->write_len);
 
     if (ret > 0) {
         msg->data.id = ID_DATA;
