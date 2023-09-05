@@ -93,9 +93,9 @@ int adb_hal_socket_start(adb_tcp_socket_t *socket,
     socket->on_data_cb = on_data_cb;
 
     if (!uv_is_active((uv_handle_t*)&socket->handle)) {
-        assert(0 == uv_read_start((uv_stream_t*)&socket->handle,
-                                tcp_stream_allocate_frame,
-                                tcp_stream_on_data_available));
+        return uv_read_start((uv_stream_t*)&socket->handle,
+                             tcp_stream_allocate_frame,
+                             tcp_stream_on_data_available);
     }
 
     return 0;
@@ -145,11 +145,16 @@ static void connect_cb(uv_connect_t* req, int status) {
 int adb_hal_socket_connect(adb_client_t *client, adb_tcp_socket_t *socket,
                            int port, adb_tcp_conn_t *conn,
                            void (*on_connect_cb)(adb_tcp_socket_t*, int)) {
+    int ret;
     struct sockaddr_in addr;
     uv_handle_t *handle = (uv_handle_t*)(((adb_client_uv_t*)client)+1);
 
-    assert(0 == uv_ip4_addr("127.0.0.1", port, &addr));
-    assert(0 == uv_tcp_init(handle->loop, &socket->handle));
+    if ((ret = uv_ip4_addr("127.0.0.1", port, &addr)) != 0) {
+        return ret;
+    }
+    if ((ret = uv_tcp_init(handle->loop, &socket->handle)) != 0) {
+        return ret;
+    }
 
     socket->handle.data = client;
     conn->on_connect_cb = on_connect_cb;

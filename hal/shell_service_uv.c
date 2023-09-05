@@ -129,7 +129,7 @@ static void pipe_on_data_available(uv_stream_t* stream, ssize_t nread,
 
     if (nread <= 0) {
         if (nread != UV_EOF) {
-            adb_err("GOT ERROR nread %d\n", nread);
+            adb_err("closing due to error: %d\n", nread);
         }
         adb_service_close(&client->client, &service->service, p);
         return;
@@ -197,11 +197,10 @@ static void shell_kick(adb_service_t *service) {
 
     if (!svc->wait_ack) {
         if (!uv_is_active((uv_handle_t*)&svc->shell_pipe)) {
-            int ret;
-            ret = uv_read_start((uv_stream_t*)&svc->shell_pipe,
+            /* No need to check return code as it would only fail when
+             * in case the pipe fd is closing */
+            uv_read_start((uv_stream_t*)&svc->shell_pipe,
                 alloc_buffer, pipe_on_data_available);
-            /* TODO handle return code */
-            assert(ret == 0);
         }
     }
 }
