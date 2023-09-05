@@ -25,7 +25,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <assert.h>
 
 #ifndef UNUSED
 #define UNUSED(x) (void)(x)
@@ -35,6 +34,7 @@
   ((type *)((uintptr_t)(ptr) - offsetof(type, member)))
 
 #ifndef fatal
+#include <assert.h>
 #define fatal(...) assert(0)
 #endif
 

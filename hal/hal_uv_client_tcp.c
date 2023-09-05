@@ -77,12 +77,11 @@ static void tcp_uv_kick(adb_client_t *c) {
     adb_client_tcp_t *client = container_of(c, adb_client_tcp_t, uc.client);
 
     if (!uv_is_active((uv_handle_t*)&client->socket)) {
-        /* Restart read events */
-        int ret = uv_read_start((uv_stream_t*)&client->socket,
+        /* Restart read events. There is no need to check the return value as
+         * uv_read_start() can only fail in case the stream is closing. */
+        uv_read_start((uv_stream_t*)&client->socket,
             tcp_uv_allocate_frame,
             tcp_uv_on_data_available);
-        /* TODO check return code */
-        assert(ret == 0);
     }
 
     adb_client_kick_services(c);
@@ -119,29 +118,40 @@ static void tcp_on_connection(uv_stream_t* server, int status) {
 
     client = (adb_client_tcp_t*)adb_uv_create_client(sizeof(*client));
     if (client == NULL) {
-        adb_err("failed to allocate stream\n");
-        return;
+        ret = -ENOMEM;
+        goto exit;
     }
 
     /* Setup adb_client */
     client->uc.client.ops = &adb_tcp_uv_ops;
 
     ret = uv_tcp_init(adbd->loop, &client->socket);
-    /* TODO check return code */
-    assert(ret == 0);
+    if (ret) {
+        goto exit_close_client;
+    }
 
     client->socket.data = server;
 
-
     ret = uv_accept(server, (uv_stream_t*)&client->socket);
-    /* TODO check return code */
-    assert(ret == 0);
+    if (ret) {
+        goto exit_close_client;
+    }
 
     ret = uv_read_start((uv_stream_t*)&client->socket,
         tcp_uv_allocate_frame,
         tcp_uv_on_data_available);
-    /* TODO check return code */
-    assert(ret == 0);
+    if (ret) {
+        /* Close socket before destroying the client */
+        tcp_uv_close(&client->uc.client);
+        goto exit;
+    }
+
+    return;
+
+exit_close_client:
+    adb_uv_close_client(&client->uc);
+exit:
+    adb_err("failed to establish new connection: %d\n", ret);
 }
 
 /****************************************************************************

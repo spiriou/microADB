@@ -96,7 +96,7 @@ static int atcp_stream_on_ack(adb_service_t *service, apacket *p) {
 
     if (svc->state == F_WAIT_ACK) {
         svc->state = F_CONNECTED;
-        adb_hal_socket_start(&svc->socket, tcp_stream_on_data_cb);
+        return adb_hal_socket_start(&svc->socket, tcp_stream_on_data_cb);
     }
     return 0;
 }
