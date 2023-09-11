@@ -29,7 +29,7 @@ static adb_context_uv_t g_adbd_context;
  * HAL Public Functions
  ****************************************************************************/
 
-adb_context_t* adb_hal_create_context() {
+adb_context_t* adb_hal_create_context(void) {
     adb_context_uv_t *adbd = &g_adbd_context;
 
     adbd->loop = uv_default_loop();
