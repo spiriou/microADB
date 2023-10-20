@@ -141,7 +141,7 @@ static void handle_open_frame(adb_client_t *client, apacket *p) {
         return;
     }
 
-    name[p->msg.data_length > 0 ? p->msg.data_length - 1 : 0] = 0;
+    name[p->msg.data_length] = 0;
     svc = adb_service_open(client, name, p);
     if(svc == NULL) {
         if (p->write_len > 0) {
