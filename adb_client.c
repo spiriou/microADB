@@ -413,6 +413,7 @@ void adb_service_close(adb_client_t *client, adb_service_t *svc, apacket *p) {
             cur_svc->next = svc->next;
             goto exit_free_service;
         }
+        cur_svc = cur_svc->next;
     }
 
     adb_warn("service %p not found\n", svc);
