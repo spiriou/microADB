@@ -8,6 +8,8 @@ project (adbd)
 
 find_package(uv REQUIRED)
 
+option(ADBD_USB_HOTPLUG_BYTIMER "adb usb hotplug check by timer" OFF)
+
 option(ADBD_AUTHENTICATION "adb authentication"    OFF)
 option(ADBD_AUTH_PUBKEY    "adb auth public key"   OFF)
 option(ADBD_FILE_SERVICE   "adb file sync service" ON)
