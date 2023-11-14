@@ -247,7 +247,12 @@ int adb_uv_usb_setup(adb_context_uv_t *adbd, const char *path) {
 
     ret = usb_uv_open(client);
     if (ret < 0) {
+#ifdef CONFIG_ADBD_USB_HOTPLUG_BYTIMER
+        usb_hotplug_check(client);
+        ret = 0;
+#else
         adb_uv_close_client(&client->uc);
+#endif
     }
 
     return ret;
