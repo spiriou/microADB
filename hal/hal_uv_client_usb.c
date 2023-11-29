@@ -111,8 +111,8 @@ static void usb_uv_close(adb_client_t *c) {
     adb_client_usb_t *client = (adb_client_usb_t*)c;
 
     /* Close pipe and cancel all pending write requests if any */
-    uv_close((uv_handle_t*)&client->write_pipe, NULL);
     uv_close((uv_handle_t*)&client->read_pipe, usb_uv_on_close);
+    uv_close((uv_handle_t*)&client->write_pipe, NULL);
 }
 
 static const adb_client_ops_t adb_usb_uv_ops = {
