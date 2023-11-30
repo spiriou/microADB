@@ -50,7 +50,10 @@ adb_context_t* adb_hal_create_context(void) {
 }
 
 void adb_hal_destroy_context(adb_context_t *context) {
-    UNUSED(context);
+    adb_context_uv_t *adbd =
+        container_of(context, adb_context_uv_t, context);
+
+    uv_loop_close(adbd->loop);
 }
 
 adb_client_t *adb_hal_create_client(size_t size) {
