@@ -29,7 +29,9 @@ typedef struct adb_client_usb_s {
     /* FIXME libuv handle must be right after adb_client_uv_t */
     uv_pipe_t read_pipe;
     uv_pipe_t write_pipe;
-#ifdef CONFIG_ADBD_USB_HOTPLUG_BYTIMER
+#if defined(CONFIG_ADBD_USB_HOTPLUG_BYNOTIFY)
+    uv_fs_event_t event;
+#elif defined(CONFIG_ADBD_USB_HOTPLUG_BYTIMER)
     uv_timer_t timer;
 #endif
     char path[0];
@@ -115,7 +117,23 @@ err_with_write:
     return ret;
 }
 
-#ifdef CONFIG_ADBD_USB_HOTPLUG_BYTIMER
+#if defined(CONFIG_ADBD_USB_HOTPLUG_BYNOTIFY)
+static void usb_hotplug_check_cb(uv_fs_event_t* handle,
+                                 const char* filename,
+                                 int events, int status) {
+    adb_client_usb_t *client = container_of(handle, adb_client_usb_t, event);
+    int ret;
+
+    if (events == UV_RENAME) {
+        ret = usb_uv_open(client);
+        if (ret >= 0) {
+            uv_fs_event_stop(handle);
+            uv_close((uv_handle_t*)handle, NULL);
+        }
+    }
+}
+
+#elif defined(CONFIG_ADBD_USB_HOTPLUG_BYTIMER)
 static void usb_hotplug_check_cb(uv_timer_t* handle) {
     adb_client_usb_t *client = container_of(handle, adb_client_usb_t, timer);
     struct stat statbuf;
@@ -125,30 +143,56 @@ static void usb_hotplug_check_cb(uv_timer_t* handle) {
     snprintf(devname, sizeof(devname), "%s/ep2", client->path);
     ret = stat(devname, &statbuf);
     if (ret >= 0) {
-       ret = usb_uv_open(client);
-       if (ret >= 0) {
-          uv_timer_stop(handle);
-       }
+        ret = usb_uv_open(client);
+        if (ret >= 0) {
+            uv_timer_stop(handle);
+            uv_close((uv_handle_t*)handle, NULL);
+        }
     }
 }
+#endif
 
-static void usb_hotplug_check(adb_client_usb_t* client) {
-    int ret;
+static int usb_hotplug_check(adb_client_usb_t* client) {
+    int ret = -ENOTSUP;
 
+#if defined(CONFIG_ADBD_USB_HOTPLUG_BYNOTIFY)
+    struct stat statbuf;
+
+    ret = stat(client->path, &statbuf);
+    if (ret < 0)
+      {
+        mkdir(client->path, 0666);
+      }
+
+    ret = uv_fs_event_init(uv_default_loop(), &client->event);
+    if (ret != 0) {
+        adb_log("usb inotify init error %d %d\n", ret, errno);
+        return ret;
+    }
+
+    ret = uv_fs_event_start(&client->event, usb_hotplug_check_cb,
+                            client->path, 0);
+    if (ret != 0) {
+        adb_log("usb notify start error %d %d\n", ret, errno);
+    }
+
+#elif defined(CONFIG_ADBD_USB_HOTPLUG_BYTIMER)
     ret = uv_timer_init(uv_default_loop(), &client->timer);
-    if (ret) {
+    if (ret != 0) {
         adb_log("usb timer init error %d %d\n", ret, errno);
-        return;
+        return ret;
     }
 
     /* Using 1s timer to check usb hotplug */
 
     ret = uv_timer_start(&client->timer, usb_hotplug_check_cb, 0, 1000);
-    if (ret) {
+    if (ret != 0) {
         adb_log("usb timer start error %d %d\n", ret, errno);
     }
-}
 #endif
+
+    return ret;
+}
 
 static int usb_uv_write(adb_client_t *c, apacket *p) {
     int ret;
@@ -204,11 +248,9 @@ static void usb_uv_kick(adb_client_t *c) {
 static void usb_uv_on_close(uv_handle_t* handle) {
     adb_client_usb_t *client = container_of(handle, adb_client_usb_t, read_pipe);
 
-#ifdef CONFIG_ADBD_USB_HOTPLUG_BYTIMER
-    usb_hotplug_check(client);
-#else
-    adb_uv_close_client(&client->uc);
-#endif
+    if (usb_hotplug_check(client) != 0) {
+        adb_uv_close_client(&client->uc);
+    }
 }
 
 static void usb_uv_close(adb_client_t *c) {
@@ -247,12 +289,10 @@ int adb_uv_usb_setup(adb_context_uv_t *adbd, const char *path) {
 
     ret = usb_uv_open(client);
     if (ret < 0) {
-#ifdef CONFIG_ADBD_USB_HOTPLUG_BYTIMER
-        usb_hotplug_check(client);
-        ret = 0;
-#else
-        adb_uv_close_client(&client->uc);
-#endif
+        ret = usb_hotplug_check(client);
+        if (ret != 0) {
+            adb_uv_close_client(&client->uc);
+        }
     }
 
     return ret;
