@@ -31,6 +31,8 @@
 #include "tcp_service.h"
 #endif
 
+#define REBOOT_SERVICE ((adb_service_t *)(~0ul))
+
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
@@ -152,7 +154,7 @@ static void handle_open_frame(adb_client_t *client, apacket *p) {
         else {
             send_close_frame(client, p, 0, p->msg.arg0);
         }
-    } else {
+    } else if (svc != REBOOT_SERVICE) {
         if (p->write_len == APACKET_SERVICE_INIT_ASYNC) {
             /* Service init is asynchronous. Release apacket. */
             adb_hal_apacket_release(client, p);
@@ -383,10 +385,9 @@ static adb_service_t *adb_service_open(adb_client_t *client, const char *name, a
 #endif
 
         if (!strncmp(name, "reboot:", 7)) {
+            adb_send_okay_frame(client, p, client->next_service_id++, p->msg.arg0);
             adb_reboot_impl(&name[7]);
-
-            /* One shot service, skip service register */
-            return NULL;
+            return REBOOT_SERVICE;
         }
     } while (0);
 
