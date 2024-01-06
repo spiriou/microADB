@@ -23,25 +23,28 @@
 #include "hal_uv_priv.h"
 #include <uv.h>
 
-static adb_context_uv_t g_adbd_context;
-
 /****************************************************************************
  * HAL Public Functions
  ****************************************************************************/
 
 adb_context_t* adb_hal_create_context(void) {
-    adb_context_uv_t *adbd = &g_adbd_context;
+    adb_context_uv_t *adbd = malloc(sizeof(adb_context_uv_t));
+    if (adbd == NULL) {
+        return NULL;
+    }
 
     adbd->loop = uv_default_loop();
 
 #ifdef CONFIG_ADBD_TCP_SERVER
     if (adb_uv_tcp_setup(adbd)) {
+        adb_hal_destroy_context(&adbd->context);
         return NULL;
     }
 #endif
 
 #ifdef CONFIG_ADBD_USB_SERVER
     if (adb_uv_usb_setup(adbd, "/dev/adb0")) {
+        adb_hal_destroy_context(&adbd->context);
         return NULL;
     }
 #endif
@@ -54,6 +57,7 @@ void adb_hal_destroy_context(adb_context_t *context) {
         container_of(context, adb_context_uv_t, context);
 
     uv_loop_close(adbd->loop);
+    free(adbd);
 }
 
 adb_client_t *adb_hal_create_client(size_t size) {
