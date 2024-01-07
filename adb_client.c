@@ -485,7 +485,8 @@ void adb_process_packet(adb_client_t *client, apacket *p)
 {
     p->write_len = 0;
 
-    if (p->msg.command == A_CNXN) {
+    switch(p->msg.command) {
+    case A_CNXN:
         /* CONNECT(version, maxdata, "system-id-string") */
 #ifdef CONFIG_ADBD_AUTHENTICATION
         if (!client->is_connected) {
@@ -496,22 +497,16 @@ void adb_process_packet(adb_client_t *client, apacket *p)
         send_cnxn_frame(client, p);
         client->is_connected = 1;
         return;
-    }
 
 #ifdef CONFIG_ADBD_AUTHENTICATION
-    if (p->msg.command == A_AUTH) {
+    case A_AUTH:
         if (!client->is_connected) {
             handle_auth_frame(client, p);
             return;
         }
-
-        goto invalid_frame;
-    }
+        break;
 #endif /* CONFIG_ADBD_AUTHENTICATION */
 
-    /* Client is connected */
-
-    switch(p->msg.command) {
     case A_OPEN:
         handle_open_frame(client, p);
         return;
@@ -532,9 +527,6 @@ void adb_process_packet(adb_client_t *client, apacket *p)
         break;
     }
 
-#ifdef CONFIG_ADBD_AUTHENTICATION
-invalid_frame:
-#endif
     adb_log("handle_packet: what is %08x?!\n", p->msg.command);
     adb_hal_apacket_release(client, p);
     client->ops->close(client);
