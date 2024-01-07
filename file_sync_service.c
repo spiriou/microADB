@@ -125,7 +125,7 @@ typedef struct afs_service_s {
     };
 
     unsigned size;
-    char buff[SYNC_TEMP_BUFF_SIZE];
+    char buff[SYNC_TEMP_BUFF_SIZE + 1];
 } afs_service_t;
 
 /****************************************************************************
@@ -582,11 +582,6 @@ static int state_process_send_sym(afs_service_t *svc, apacket *p) {
         return 0;
     }
 
-    if (svc->namelen >= SYNC_TEMP_BUFF_SIZE) {
-        prepare_fail_message(svc, p, "symlink target too long");
-        return 0;
-    }
-
     svc->buff[svc->namelen] = 0;
     ret = symlink(svc->buff, svc->send_link.path);
 
@@ -691,10 +686,6 @@ static int state_wait_cmd_data(afs_service_t *svc, apacket *p)
         if (ret == -EAGAIN) {
             return 1;
         }
-        return -1;
-    }
-
-    if (svc->namelen >= SYNC_TEMP_BUFF_SIZE) {
         return -1;
     }
 
