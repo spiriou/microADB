@@ -48,7 +48,7 @@
 #define ID_FAIL MKID('F','A','I','L')
 #define ID_QUIT MKID('Q','U','I','T')
 
-#define min(a,b) ((a) < (b) ? (a):(b))
+#define min(a,b) ((a) < (b) ? (a) : (b))
 
 #define SYNC_TEMP_BUFF_SIZE PATH_MAX
 
@@ -188,13 +188,13 @@ static void prepare_fail_message(afs_service_t *svc, apacket *p, const char *rea
     adb_err("sync: failure: %s\n", reason);
 
     len = min(strlen(reason),
-        CONFIG_ADBD_PAYLOAD_SIZE - sizeof(msg->data) - p->write_len);
-    memcpy((char*)(&msg->data+1), reason, len);
+        CONFIG_ADBD_PAYLOAD_SIZE - sizeof(msg->status) - p->write_len);
+    memcpy((char*)(&msg->status+1), reason, len);
 
-    msg->data.id = ID_FAIL;
-    msg->data.size = htoll(len);
+    msg->status.id = ID_FAIL;
+    msg->status.msglen = htoll(len);
 
-    p->write_len += sizeof(msg->data) + len;
+    p->write_len += sizeof(msg->status) + len;
 }
 
 static void prepare_fail_errno(afs_service_t *svc, apacket *p)
@@ -351,12 +351,9 @@ static int state_init_list(afs_service_t *svc, apacket *p)
 exit_free:
     free(svc->list.path);
 exit_done:
-    msg->dent.id = ID_DONE;
-    msg->dent.mode = 0;
-    msg->dent.size = 0;
-    msg->dent.time = 0;
-    msg->dent.namelen = 0;
-    p->write_len += sizeof(msg->dent);
+    msg->status.id = ID_DONE;
+    msg->status.msglen = 0;
+    p->write_len += sizeof(msg->status);
     return 0;
 }
 
@@ -372,12 +369,9 @@ static int state_process_list(afs_service_t *svc, apacket *p)
     de = readdir(svc->list.d);
 
     if (de == NULL) {
-        msg->dent.id = ID_DONE;
-        msg->dent.mode = 0;
-        msg->dent.size = 0;
-        msg->dent.time = 0;
-        msg->dent.namelen = 0;
-        p->write_len += sizeof(msg->dent);
+        msg->status.id = ID_DONE;
+        msg->status.msglen = 0;
+        p->write_len += sizeof(msg->status);
         return 0;
     }
 
