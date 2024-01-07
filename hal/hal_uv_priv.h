@@ -55,7 +55,7 @@ typedef struct adb_context_uv_s {
 #ifdef CONFIG_ADBD_SOCKET_SERVICE
 struct adb_tcp_socket_s {
     uv_tcp_t handle;
-    void (*close_cb)(struct adb_tcp_socket_s*);
+    void (*on_close_cb)(struct adb_tcp_socket_s*);
     void (*on_data_cb)(struct adb_tcp_socket_s*, struct apacket_s*);
     void (*on_write_cb)(struct adb_client_s*, struct adb_tcp_socket_s*, struct apacket_s*, bool);
 };

@@ -71,7 +71,7 @@ static void send_frame(adb_client_t *client, apacket *p)
     p->msg.magic = p->msg.command ^ 0xffffffff;
 
     count = p->msg.data_length;
-    x = (unsigned char *) p->data;
+    x = (unsigned char *)p->data;
     sum = 0;
     while(count-- > 0){
         sum += *x++;
@@ -135,7 +135,7 @@ static void send_auth_request(adb_client_t *client, apacket *p)
 
 static void handle_open_frame(adb_client_t *client, apacket *p) {
     adb_service_t *svc;
-    char *name = (char*) p->data;
+    char *name = (char*)p->data;
 
     /* OPEN(local-id, 0, "destination") */
     if (p->msg.arg0 == 0 || p->msg.arg1 != 0) {
@@ -344,8 +344,6 @@ void adb_register_service(adb_service_t *svc, adb_client_t *client) {
 static adb_service_t *adb_service_open(adb_client_t *client, const char *name, apacket *p)
 {
     adb_service_t *svc = NULL;
-
-    UNUSED(p);
 
     if (client->next_service_id == 0) {
         /* service id overflow, exit */

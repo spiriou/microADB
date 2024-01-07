@@ -47,10 +47,6 @@ static void tcp_stream_allocate_frame(uv_handle_t* handle,
 
 static void tcp_stream_on_data_available(uv_stream_t* handle,
         ssize_t nread, const uv_buf_t* buf) {
-    UNUSED(handle);
-    UNUSED(nread);
-    UNUSED(buf);
-
     apacket_uv_t *ap = container_of(buf->base, apacket_uv_t, p.data);
     adb_tcp_socket_t *socket = container_of(handle, adb_tcp_socket_t, handle);
     adb_client_t *client = (adb_client_t*)socket->handle.data;
@@ -79,11 +75,11 @@ static void tcp_stream_on_data_available(uv_stream_t* handle,
 
 static void socket_close_cb(uv_handle_t* handle) {
     adb_tcp_socket_t *socket = container_of(handle, adb_tcp_socket_t, handle);
-    socket->close_cb(socket);
+    socket->on_close_cb(socket);
 }
 
-void adb_hal_socket_close(adb_tcp_socket_t *socket, void (*close_cb)(adb_tcp_socket_t*)) {
-    socket->close_cb = close_cb;
+void adb_hal_socket_close(adb_tcp_socket_t *socket, void (*on_close_cb)(adb_tcp_socket_t*)) {
+    socket->on_close_cb = on_close_cb;
     uv_close((uv_handle_t*)&socket->handle, socket_close_cb);
 }
 
@@ -105,7 +101,7 @@ int adb_hal_socket_stop(adb_tcp_socket_t *socket) {
     return uv_read_stop((uv_stream_t*)&socket->handle);
 }
 
-static void fwd_tcp_after_write(uv_write_t* req, int status) {
+static void tcp_stream_after_write(uv_write_t* req, int status) {
     apacket_uv_t *up = container_of(req, apacket_uv_t, wr);
     adb_tcp_socket_t *socket = (adb_tcp_socket_t*)req->data;
     adb_client_t *client = (adb_client_t*)socket->handle.data;
@@ -126,7 +122,7 @@ int adb_hal_socket_write(adb_tcp_socket_t *socket, apacket *p,
     uv_p->wr.data = socket;
     socket->on_write_cb = cb;
 
-    ret = uv_write(&uv_p->wr, (uv_stream_t*)&socket->handle, &buf, 1, fwd_tcp_after_write);
+    ret = uv_write(&uv_p->wr, (uv_stream_t*)&socket->handle, &buf, 1, tcp_stream_after_write);
     if (ret) {
         adb_err("uv_write failed (len=%d, ret=%d, errno=%d)\n", buf.len, ret, errno);
         return -1;
@@ -162,6 +158,6 @@ int adb_hal_socket_connect(adb_client_t *client, adb_tcp_socket_t *socket,
 
     return uv_tcp_connect(&conn->connect_req,
                           &socket->handle,
-                          (const struct sockaddr*) &addr,
+                          (const struct sockaddr*)&addr,
                           connect_cb);
 }
