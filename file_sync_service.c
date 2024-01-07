@@ -714,11 +714,6 @@ static int state_wait_cmd_data(afs_service_t *svc, apacket *p)
         ret = state_init_recv(svc, p);
         break;
 
-    case ID_QUIT:
-        // adb_log("got QUIT command\n");
-        ret = 0;
-        break;
-
     default:
         adb_err("Unexpected command 0x%x\n", svc->cmd);
         ret = -1;
