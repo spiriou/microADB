@@ -196,18 +196,29 @@ static int usb_hotplug_check(adb_client_usb_t* client) {
 
 static int usb_uv_write(adb_client_t *c, apacket *p) {
     int ret;
-    uv_buf_t buf;
+    uv_buf_t buf[2];
+    int buf_cnt;
     apacket_uv_t *up = container_of(p, apacket_uv_t, p);
     adb_client_usb_t *client = container_of(c, adb_client_usb_t, uc.client);
     uv_stream_t *pipe = (uv_stream_t *)&client->write_pipe;
 
-    buf = uv_buf_init((char*)&p->msg,
-        sizeof(p->msg) + p->msg.data_length);
+    buf[0].base = (char*)&p->msg;
+    buf[0].len  = sizeof(p->msg);
+
+    if (p->msg.data_length > 0) {
+        buf[1].base = (char*)p->data;
+        buf[1].len  = p->msg.data_length;
+        buf_cnt = 2;
+    }
+    else {
+        buf_cnt = 1;
+    }
 
     /* Packet is now tracked by libuv */
     up->wr.data = &client->uc;
 
-    ret =uv_write(&up->wr, pipe, &buf, 1,
+
+    ret =uv_write(&up->wr, pipe, buf, buf_cnt,
         adb_uv_after_write);
     if (ret) {
         adb_err("uv_write failed %d %d\n", ret, errno);
