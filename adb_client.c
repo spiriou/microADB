@@ -407,7 +407,7 @@ void adb_service_close(adb_client_t *client, adb_service_t *svc, apacket *p) {
         goto exit_free_service;
     }
 
-    while (cur_svc->next) {
+    while (cur_svc != NULL && cur_svc->next != NULL) {
         if (cur_svc->next == svc) {
             cur_svc->next = svc->next;
             goto exit_free_service;
