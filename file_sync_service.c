@@ -351,9 +351,12 @@ static int state_init_list(afs_service_t *svc, apacket *p)
 exit_free:
     free(svc->list.path);
 exit_done:
-    msg->status.id = ID_DONE;
-    msg->status.msglen = 0;
-    p->write_len += sizeof(msg->status);
+    msg->dent.id = ID_DONE;
+    msg->dent.mode = 0;
+    msg->dent.size = 0;
+    msg->dent.time = 0;
+    msg->dent.namelen = 0;
+    p->write_len += sizeof(msg->dent);
     return 0;
 }
 
@@ -369,9 +372,12 @@ static int state_process_list(afs_service_t *svc, apacket *p)
     de = readdir(svc->list.d);
 
     if (de == NULL) {
-        msg->status.id = ID_DONE;
-        msg->status.msglen = 0;
-        p->write_len += sizeof(msg->status);
+        msg->dent.id = ID_DONE;
+        msg->dent.mode = 0;
+        msg->dent.size = 0;
+        msg->dent.time = 0;
+        msg->dent.namelen = 0;
+        p->write_len += sizeof(msg->dent);
         return 0;
     }
 
