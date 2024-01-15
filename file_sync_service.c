@@ -99,6 +99,7 @@ enum {
 typedef struct afs_service_s {
     adb_service_t service;
     uint8_t *packet_ptr;
+    uint8_t *payload;
 
     uint8_t state;
     unsigned cmd;
@@ -260,6 +261,23 @@ static int create_path_directories(char *name)
         }
     }
     return 0;
+}
+
+static uint8_t *get_payload(afs_service_t *svc, apacket *p)
+{
+  if (svc->size > 0) {
+      if (svc->payload == NULL) {
+          svc->payload = malloc(CONFIG_ADBD_PAYLOAD_SIZE);
+          if (svc->payload == NULL) {
+              return NULL;
+          }
+      }
+
+      memcpy(svc->payload, p->data, p->msg.data_length);
+      return svc->payload;
+  }
+
+  return p->data;
 }
 
 static void state_reset(afs_service_t *svc)
@@ -716,7 +734,7 @@ static int state_wait_cmd_data(afs_service_t *svc, apacket *p)
 static int file_sync_on_write(adb_service_t *service, apacket *p) {
     int ret = 0;
     afs_service_t *svc = container_of(service, afs_service_t, service);
-    svc->packet_ptr = p->data;
+    svc->packet_ptr = get_payload(svc, p);
 
     /* Process all packet data */
 
@@ -765,7 +783,7 @@ static int file_sync_on_write(adb_service_t *service, apacket *p) {
 static int file_sync_on_ack(adb_service_t *service, apacket *p) {
     int ret;
     afs_service_t *svc = container_of(service, afs_service_t, service);
-    svc->packet_ptr = p->data;
+    svc->packet_ptr = get_payload(svc, p);
 
     /* No data in notify packet */
     switch (svc->state) {
@@ -777,11 +795,19 @@ static int file_sync_on_ack(adb_service_t *service, apacket *p) {
             ret = state_process_list(svc, p);
             break;
 
+        case AFS_STATE_PROCESS_SEND_FILE_DATA:
         case AFS_STATE_PROCESS_SEND_FILE_HDR:
         case AFS_STATE_PROCESS_SEND_SYM_HDR:
+        case AFS_STATE_WAIT_CMD_DATA:
         case AFS_STATE_WAIT_CMD:
-            /* Nothing to do */
-            ret = 0;
+            /* Since the WRITE frame can contain multiple incomplete
+             * combinations of ID_SEND and ID_DONE, when the pc replies to ID_DONE,
+             * the OKAY frame sent can be at any time in the state machine.
+             * At this time, we should not reset the state machine and continue
+             * to process the next frame status.
+             */
+
+            ret = 1;
             break;
 
         default:
@@ -803,6 +829,7 @@ static int file_sync_on_ack(adb_service_t *service, apacket *p) {
 static void file_sync_on_close(struct adb_service_s *service) {
     afs_service_t *svc = container_of(service, afs_service_t, service);
     state_reset(svc);
+    free(svc->payload);
     free(svc);
 }
 
@@ -828,6 +855,7 @@ adb_service_t* file_sync_service(const char *params)
     }
 
     service->size = 0;
+    service->payload = NULL;
     service->state = AFS_STATE_WAIT_CMD;
     service->service.ops = &file_sync_ops;
 
