@@ -95,6 +95,7 @@ static void usb_uv_kick(adb_client_t *c) {
             usb_uv_on_data_available);
         /* TODO check return code */
         assert(ret == 0);
+        UNUSED(ret);
     }
 
     adb_client_kick_services(c);
