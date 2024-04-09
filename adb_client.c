@@ -371,7 +371,7 @@ static adb_service_t *adb_service_open(adb_client_t *client, const char *name, a
             /* Search for logcat */
             char *ptr = strstr(name, "exec logcat");
             if (ptr) {
-                svc = logcat_service(client, name);
+                svc = logcat_service(client, ptr);
                 break;
             }
 #endif /* CONFIG_ADBD_LOGCAT_SERVICE */
