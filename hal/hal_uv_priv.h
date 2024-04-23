@@ -50,6 +50,9 @@ typedef struct adb_context_uv_s {
 #ifdef CONFIG_ADBD_TCP_SERVER
     uv_tcp_t tcp_server;
 #endif
+#ifdef CONFIG_ADBD_QEMU_SERVER
+    uv_poll_t qemu_server;
+#endif
 } adb_context_uv_t;
 
 #ifdef CONFIG_ADBD_SOCKET_SERVICE
@@ -76,6 +79,10 @@ int adb_uv_tcp_setup(adb_context_uv_t *adbd);
 
 #ifdef CONFIG_ADBD_USB_SERVER
 int adb_uv_usb_setup(adb_context_uv_t *adbd, const char *path);
+#endif
+
+#ifdef CONFIG_ADBD_QEMU_SERVER
+int adb_uv_qemu_setup(adb_context_uv_t *adbd);
 #endif
 
 /* hal packet management */

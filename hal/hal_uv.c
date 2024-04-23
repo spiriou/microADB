@@ -49,6 +49,13 @@ adb_context_t* adb_hal_create_context(void) {
     }
 #endif
 
+#ifdef CONFIG_ADBD_QEMU_SERVER
+    if (adb_uv_qemu_setup(adbd)) {
+        adb_hal_destroy_context(&adbd->context);
+        return NULL;
+    }
+#endif
+
     return &adbd->context;
 }
 
