@@ -40,6 +40,7 @@ typedef struct ash_service_s {
     uv_pipe_t shell_pipe;
     uv_process_t process;
     int wait_ack;
+    bool exiting;
 } ash_service_t;
 
 /****************************************************************************
@@ -90,11 +91,19 @@ static void on_child_exit(uv_process_t *process, int64_t exit_status,
         int term_signal) {
     ash_service_t *svc = (ash_service_t*)process->data;
     adb_client_uv_t *client = (adb_client_uv_t *)svc->shell_pipe.data;
+    apacket_uv_t *p = adb_uv_packet_allocate(client, 0);
 
-    adb_service_close(&client->client, &svc->service, NULL);
-    adb_log("shell %d<->%d exited with status %ld, signal %d\n",
+    if (p) {
+        adb_send_close_frame(&client->client, &p->p,
+                             svc->service.id, svc->service.peer_id);
+    }
+    else {
+        svc->exiting = true;
+    }
+
+    adb_log("shell %d<->%d exited with status %ld, signal %d, flag %d\n",
         svc->service.id, svc->service.peer_id,
-        exit_status, term_signal);
+        exit_status, term_signal, svc->exiting);
 }
 
 static void alloc_buffer(uv_handle_t *handle, size_t len, uv_buf_t *buf) {
@@ -133,7 +142,7 @@ static void pipe_on_data_available(uv_stream_t* stream, ssize_t nread,
         if (nread != UV_EOF) {
             adb_err("closing due to error: %d\n", nread);
         }
-        adb_service_close(&client->client, &service->service, p);
+        adb_hal_apacket_release(&client->client, p);
         return;
     }
 
@@ -155,7 +164,7 @@ static void shell_after_write(uv_write_t* req, int status) {
 
     if (status < 0) {
         adb_err("uv_write failed %d\n", status);
-        adb_service_close(&client->client, &svc->service, &up->p);
+        adb_hal_apacket_release(&client->client, &up->p);
         return;
     }
 
@@ -197,7 +206,17 @@ static int shell_ack(adb_service_t *service, apacket *p) {
 static void shell_kick(adb_service_t *service) {
     ash_service_t *svc = container_of(service, ash_service_t, service);
 
-    if (!svc->wait_ack) {
+    if (svc->exiting) {
+        adb_client_uv_t *client = (adb_client_uv_t *)svc->shell_pipe.data;
+        apacket_uv_t *p = adb_uv_packet_allocate(client, 0);
+
+        if (p) {
+            svc->exiting = false;
+            adb_send_close_frame(&client->client, &p->p,
+                                svc->service.id, svc->service.peer_id);
+        }
+    }
+    else if (!svc->wait_ack) {
         if (!uv_is_active((uv_handle_t*)&svc->shell_pipe)) {
             /* No need to check return code as it would only fail when
              * in case the pipe fd is closing */
@@ -256,6 +275,7 @@ adb_service_t *shell_service(adb_client_t *client, const char *params) {
     service->shell_pipe.data = client;
     service->process.data = service;
     service->wait_ack = 0;
+    service->exiting = false;
 
     target_cmd = &params[sizeof(ADB_SHELL_PREFIX)-1];
 

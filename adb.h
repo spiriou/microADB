@@ -185,6 +185,8 @@ void adb_send_okay_frame_with_data(adb_client_t *client, apacket *p,
     unsigned local, unsigned remote);
 void adb_send_open_frame(adb_client_t *client, apacket *p,
     unsigned local, unsigned remote, int size);
+void adb_send_close_frame(adb_client_t *client, apacket *p,
+                          unsigned local, unsigned remote);
 void adb_send_data_frame(adb_client_t *client, apacket *p);
 
 int adb_check_frame_data(apacket *p);

@@ -38,8 +38,6 @@
  ****************************************************************************/
 
 static void send_frame(adb_client_t *s, apacket *p);
-static void send_close_frame(adb_client_t *s, apacket *p,
-    unsigned local, unsigned remote);
 static void send_cnxn_frame(adb_client_t *s, apacket *p);
 
 #ifdef CONFIG_ADBD_AUTHENTICATION
@@ -85,17 +83,6 @@ static void send_frame(adb_client_t *client, apacket *p)
             ret, sizeof(p->msg)+p->msg.data_length);
         client->ops->close(client);
     }
-}
-
-static void send_close_frame(adb_client_t *client, apacket *p,
-    unsigned local, unsigned remote)
-{
-    p->msg.command = A_CLSE;
-    p->msg.arg0 = local;
-    p->msg.arg1 = remote;
-    p->msg.data_length = 0;
-    p->write_len = 0;
-    send_frame(client, p);
 }
 
 static void send_cnxn_frame(adb_client_t *client, apacket *p)
@@ -152,7 +139,7 @@ static void handle_open_frame(adb_client_t *client, apacket *p) {
                                           p->msg.arg0);
         }
         else {
-            send_close_frame(client, p, 0, p->msg.arg0);
+            adb_send_close_frame(client, p, 0, p->msg.arg0);
         }
     } else if (svc != REBOOT_SERVICE) {
         if (p->write_len == APACKET_SERVICE_INIT_ASYNC) {
@@ -183,7 +170,7 @@ static void handle_write_frame(adb_client_t *client, apacket *p) {
     svc = adb_client_find_service(client, p->msg.arg1, p->msg.arg0);
     if (svc == NULL) {
         /* Ensure service is closed on peer side */
-        send_close_frame(client, p, p->msg.arg1, p->msg.arg0);
+        adb_send_close_frame(client, p, p->msg.arg1, p->msg.arg0);
         return;
     }
 
@@ -209,7 +196,7 @@ static void handle_okay_frame(adb_client_t *client, apacket *p) {
     adb_service_t *svc;
     svc = adb_client_find_service(client, p->msg.arg1, 0);
     if (!svc) {
-        send_close_frame(client, p, p->msg.arg1, p->msg.arg0);
+        adb_hal_apacket_release(client, p);
         return;
     }
 
@@ -326,6 +313,17 @@ void adb_send_open_frame(adb_client_t *client, apacket *p,
     send_frame(client, p);
 }
 
+void adb_send_close_frame(adb_client_t *client, apacket *p,
+    unsigned local, unsigned remote)
+{
+    p->msg.command = A_CLSE;
+    p->msg.arg0 = local;
+    p->msg.arg1 = remote;
+    p->msg.data_length = 0;
+    p->write_len = 0;
+    send_frame(client, p);
+}
+
 void adb_send_data_frame(adb_client_t *client, apacket *p)
 {
     p->msg.command = A_WRTE;
@@ -420,7 +418,7 @@ void adb_service_close(adb_client_t *client, adb_service_t *svc, apacket *p) {
 
 exit_free_service:
     if (p) {
-        send_close_frame(client, p, svc->id, svc->peer_id);
+        adb_send_close_frame(client, p, svc->id, svc->peer_id);
     }
     svc->ops->on_close(svc);
 }
