@@ -90,8 +90,9 @@ static void on_child_exit(uv_process_t *process, int64_t exit_status,
         int term_signal) {
     ash_service_t *svc = (ash_service_t*)process->data;
     adb_client_uv_t *client = (adb_client_uv_t *)svc->shell_pipe.data;
+    apacket_uv_t* p = adb_uv_packet_allocate(client, 0);
 
-    adb_service_close(&client->client, &svc->service, NULL);
+    adb_service_close(&client->client, &svc->service, &p->p);
     adb_log("shell %d<->%d exited with status %ld, signal %d\n",
         svc->service.id, svc->service.peer_id,
         exit_status, term_signal);

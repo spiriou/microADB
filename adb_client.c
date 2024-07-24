@@ -209,7 +209,7 @@ static void handle_okay_frame(adb_client_t *client, apacket *p) {
     adb_service_t *svc;
     svc = adb_client_find_service(client, p->msg.arg1, 0);
     if (!svc) {
-        send_close_frame(client, p, p->msg.arg1, p->msg.arg0);
+        adb_hal_apacket_release(client, p);
         return;
     }
 
