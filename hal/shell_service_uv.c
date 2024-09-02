@@ -180,14 +180,23 @@ static int shell_write(adb_service_t *service, apacket *p) {
     apacket_uv_t *up = container_of(p, apacket_uv_t, p);
     ash_service_t *svc = container_of(service, ash_service_t, service);
 
-    buf = uv_buf_init((char*)&p->data, p->msg.data_length);
-    up->wr.data = svc;
+    if (svc->exiting) {
+        adb_client_uv_t *client = (adb_client_uv_t *)svc->shell_pipe.data;
 
-    ret = uv_write(&up->wr, (uv_stream_t*)&svc->shell_pipe, &buf, 1,
-        shell_after_write);
-    if (ret) {
-        adb_err("uv_write failed %d %d\n", ret, errno);
-        return -1;
+        svc->exiting = false;
+        adb_send_close_frame(&client->client, p,
+                             svc->service.id, svc->service.peer_id);
+    }
+    else {
+        buf = uv_buf_init((char*)&p->data, p->msg.data_length);
+        up->wr.data = svc;
+
+        ret = uv_write(&up->wr, (uv_stream_t*)&svc->shell_pipe, &buf, 1,
+            shell_after_write);
+        if (ret) {
+            adb_err("uv_write failed %d %d\n", ret, errno);
+            return -1;
+        }
     }
 
     /* Notify ADB client that packet is now managed by service */
