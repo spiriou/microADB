@@ -130,8 +130,6 @@ static void tcp_on_connection(uv_stream_t* server, int status) {
         goto exit_close_client;
     }
 
-    client->socket.data = server;
-
     ret = uv_accept(server, (uv_stream_t*)&client->socket);
     if (ret) {
         goto exit_close_client;

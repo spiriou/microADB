@@ -185,6 +185,8 @@ void adb_send_okay_frame_with_data(adb_client_t *client, apacket *p,
     unsigned local, unsigned remote);
 void adb_send_open_frame(adb_client_t *client, apacket *p,
     unsigned local, unsigned remote, int size);
+void adb_send_close_frame(adb_client_t *client, apacket *p,
+                          unsigned local, unsigned remote);
 void adb_send_data_frame(adb_client_t *client, apacket *p);
 
 int adb_check_frame_data(apacket *p);
@@ -215,7 +217,7 @@ int adb_hal_socket_connect(struct adb_client_s *client, adb_tcp_socket_t *socket
                            void (*on_connect_cb)(adb_tcp_socket_t*, int));
 
 void adb_hal_socket_close(adb_tcp_socket_t *socket,
-    void (*close_cb)(adb_tcp_socket_t*));
+    void (*on_close_cb)(adb_tcp_socket_t*));
 
 int adb_hal_socket_write(adb_tcp_socket_t *socket, struct apacket_s *p,
     void (*cb)(struct adb_client_s*, adb_tcp_socket_t*, struct apacket_s*, bool fail));
