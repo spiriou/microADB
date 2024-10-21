@@ -89,7 +89,9 @@ static int shell_set_cloexec(int fd) {
 static void on_child_exit(uv_process_t *process, int64_t exit_status,
         int term_signal) {
     ash_service_t *svc = (ash_service_t*)process->data;
+    adb_client_uv_t *client = (adb_client_uv_t *)svc->shell_pipe.data;
 
+    adb_service_close(&client->client, &svc->service, NULL);
     adb_log("shell %d<->%d exited with status %ld, signal %d\n",
         svc->service.id, svc->service.peer_id,
         exit_status, term_signal);
@@ -218,8 +220,6 @@ static void shell_close(adb_service_t *service) {
   ash_service_t *svc = container_of(service, ash_service_t, service);
 
   /* Terminate child process in case it is still running */
-
-  uv_process_kill(&svc->process, SIGKILL);
 
   uv_close((uv_handle_t *)&svc->shell_pipe, shell_close_pipe_callback);
 }

@@ -88,6 +88,10 @@ static int usb_uv_write(adb_client_t *c, apacket *p) {
 static void usb_uv_kick(adb_client_t *c) {
     adb_client_usb_t *client = container_of(c, adb_client_usb_t, uc.client);
 
+    if (uv_is_closing((uv_handle_t*)&client->read_pipe)) {
+        return;
+    }
+
     if (!uv_is_active((uv_handle_t*)&client->read_pipe)) {
         /* Restart read events */
         int ret = uv_read_start((uv_stream_t*)&client->read_pipe,
@@ -111,8 +115,8 @@ static void usb_uv_close(adb_client_t *c) {
     adb_client_usb_t *client = (adb_client_usb_t*)c;
 
     /* Close pipe and cancel all pending write requests if any */
-    uv_close((uv_handle_t*)&client->write_pipe, NULL);
     uv_close((uv_handle_t*)&client->read_pipe, usb_uv_on_close);
+    uv_close((uv_handle_t*)&client->write_pipe, NULL);
 }
 
 static const adb_client_ops_t adb_usb_uv_ops = {
