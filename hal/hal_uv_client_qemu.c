@@ -191,6 +191,7 @@ int adb_uv_qemu_setup(adb_context_uv_t *adbd) {
     const char cookie[] = "pipe:qemud:adb:"
                           STR(CONFIG_ADBD_QEMU_SERVER_PORT)
                           "\0accept";
+    size_t num_bytes = sizeof(cookie) - 1;
     int ret;
     int fd;
 
@@ -200,8 +201,16 @@ int adb_uv_qemu_setup(adb_context_uv_t *adbd) {
         return fd;
     }
 
-    ret = write(fd, cookie, sizeof(cookie) - 1);
-    if (ret != sizeof(cookie) - 1) {
+    while (num_bytes > 0) {
+        ret = write(fd, cookie, num_bytes);
+        if (ret > 0) {
+            num_bytes -= ret;
+        } else if (ret == 0 || errno != EINTR) {
+            break;
+        }
+    }
+
+    if (num_bytes) {
         adb_err("qemu server write error %d %d\n", ret, errno);
         goto err;
     }
