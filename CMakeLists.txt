@@ -97,3 +97,4 @@ endif()
 
 target_include_directories(adbd PRIVATE "${CMAKE_SOURCE_DIR}")
 target_link_libraries(adbd uv)
+install(TARGETS adbd DESTINATION bin)
